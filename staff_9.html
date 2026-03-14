@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Executive Terminal | Luxe Drive</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --accent: #e67e22;
+            --glass: rgba(10, 10, 10, 0.95);
+            --border: rgba(255, 255, 255, 0.08);
+            --card: rgba(255, 255, 255, 0.02);
+            --success: #2ecc71;
+            --error: #e74c3c;
+        }
+
+        /* --- THEME SCROLLBAR --- */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #050505; }
+        ::-webkit-scrollbar-thumb { background: #222; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #000; color: white; font-family: 'Plus Jakarta Sans', sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+        header { padding: 20px 40px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: var(--glass); z-index: 10; }
+        .logo { font-family: 'Syncopate'; font-size: 0.9rem; letter-spacing: 5px; font-weight: 700; }
+
+        .wrapper { display: flex; flex: 1; overflow: hidden; }
+
+        /* --- LEFT PANEL --- */
+        .inventory-sec { flex: 2.2; padding: 30px; overflow-y: auto; border-right: 1px solid var(--border); }
+        
+        .staff-identity-banner { 
+            background: var(--card); border: 1px solid var(--border); border-radius: 25px; 
+            padding: 25px; margin-bottom: 35px; display: flex; align-items: center; gap: 40px; 
+        }
+
+        .pfp-wrapper { position: relative; flex-shrink: 0; }
+        .pfp-container {
+            width: 85px; height: 85px; border-radius: 50%; border: 2px solid var(--accent);
+            overflow: hidden; cursor: pointer; background: #111; position: relative;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .pfp-container img { width: 100%; height: 100%; object-fit: cover; }
+        .pfp-placeholder { font-size: 2rem; opacity: 0.3; }
+        .pfp-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; opacity: 0; transition: 0.3s; font-size: 0.5rem; font-weight: 800; border-radius: 50%; color: white; }
+        .pfp-container:hover .pfp-overlay { opacity: 1; }
+        .btn-reset-pfp { position: absolute; top: -5px; right: -5px; background: var(--error); color: white; border: none; width: 22px; height: 22px; border-radius: 50%; font-size: 10px; cursor: pointer; z-index: 15; display: none; align-items: center; justify-content: center; }
+        .pfp-wrapper:hover .btn-reset-pfp { display: flex; }
+
+        .identity-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 25px; flex-grow: 1; }
+        .id-label { font-size: 0.5rem; color: #444; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 5px; display: block; }
+        .id-value { font-size: 0.75rem; color: #ccc; font-weight: 600; }
+
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; }
+        .car-card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; overflow: hidden; transition: 0.4s; position: relative; }
+        .car-card.sold { opacity: 0.4; border-color: transparent; }
+        .car-card.sold .btn-sell { background: transparent !important; border: 1px dashed #444 !important; color: #555 !important; pointer-events: none; }
+        .car-card.sold::after { content: "COMMISSION LOGGED"; position: absolute; top: 15px; right: 15px; font-family: 'Syncopate'; font-size: 0.4rem; color: var(--success); font-weight: 800; }
+
+        .car-img-box { width: 100%; height: 110px; overflow: hidden; background: #111; }
+        .car-img-box img { width: 100%; height: 100%; object-fit: cover; }
+        .car-details { padding: 15px; }
+        .car-price { font-size: 0.7rem; color: var(--accent); font-weight: 800; margin-bottom: 12px; display: block; }
+        .btn-sell { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #333; background: rgba(255,255,255,0.03); color: white; font-size: 0.6rem; font-weight: 800; cursor: pointer; text-transform: uppercase; transition: 0.3s; }
+        .btn-sell:hover { background: white; color: black; }
+
+        /* --- RIGHT PANEL --- */
+        .side-panel { flex: 1; padding: 30px; display: flex; flex-direction: column; overflow-y: auto; background: rgba(255,255,255,0.01); }
+        .ui-card { background: #0a0a0a; padding: 25px; border-radius: 24px; border: 1px solid var(--border); margin-bottom: 25px; position: relative; overflow: hidden; }
+        .ui-card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--accent); opacity: 0.5; }
+        
+        .sec-title { font-family: 'Syncopate'; font-size: 0.5rem; color: var(--accent); letter-spacing: 3px; margin-bottom: 15px; display: block; text-transform: uppercase; font-weight: 700; }
+
+        .att-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px; }
+        .att-box { background: rgba(255,255,255,0.02); border: 1px solid var(--border); padding: 15px; border-radius: 15px; text-align: center; }
+        .att-box span { font-size: 0.45rem; color: #444; text-transform: uppercase; display: block; margin-bottom: 5px; letter-spacing: 1px; }
+        .att-box b { font-size: 1.1rem; color: white; font-family: 'Syncopate'; }
+
+        .input-group { margin-bottom: 15px; }
+        .input-group label { font-size: 0.5rem; color: #444; text-transform: uppercase; margin-bottom: 8px; display: block; letter-spacing: 1px; }
+        .input-group select, .input-group input { width: 100%; background: transparent; border: none; border-bottom: 1px solid #222; padding: 10px 0; color: white; font-size: 0.8rem; outline: none; transition: 0.3s; }
+        
+        .btn-main { width: 100%; padding: 14px; border-radius: 12px; border: none; background: var(--accent); color: white; font-size: 0.65rem; font-weight: 800; cursor: pointer; text-transform: uppercase; margin-top: 10px; letter-spacing: 1px; transition: 0.3s; }
+        .btn-ghost { background: transparent; border: 1px solid #222; color: #666; margin-top: 10px; }
+        .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+        .history-item { 
+            display: flex; justify-content: space-between; align-items: center; padding: 18px; 
+            background: var(--card); border: 1px solid var(--border); border-radius: 15px; margin-bottom: 10px; cursor: pointer; transition: 0.3s;
+        }
+        .history-item:hover { border-color: var(--accent); transform: scale(1.02); }
+        .btn-dl { font-size: 0.5rem; border: 1px solid var(--accent); color: var(--accent); padding: 5px 10px; border-radius: 6px; font-weight: 800; }
+
+        /* --- PRINT AREA --- */
+        #print-area { display: none; color: black; background: white; }
+        @media print {
+            body * { visibility: hidden; }
+            #print-area, #print-area * { visibility: visible; }
+            #print-area { position: absolute; left: 0; top: 0; width: 100%; display: block; padding: 40px; }
+            .slip-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            .slip-table td, .slip-table th { border: 1px solid #333; padding: 10px; font-size: 11px; text-align: left; }
+        }
+
+        #file-input { display: none; }
+        /*---drop down box---*/
+        /* --- THEME-MATCHED INPUT STYLING --- */
+.input-wrapper {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+/* Base style for both Dropdown and Date input */
+.custom-input {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.03); /* Translucent background */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 14px 18px;
+    color: #ccc;
+    font-size: 0.8rem;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    outline: none;
+    transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+    appearance: none; /* Removes default browser styling */
+    -webkit-appearance: none;
+}
+
+/* Accent glow on focus */
+.custom-input:focus {
+    border-color: var(--accent);
+    background: rgba(230, 126, 34, 0.05);
+    color: white;
+    box-shadow: 0 0 20px rgba(230, 126, 34, 0.15);
+}
+
+/* Custom Arrow for Dropdown */
+.select-wrapper::after {
+    content: '▼';
+    position: absolute;
+    right: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.6rem;
+    color: var(--accent);
+    pointer-events: none;
+    transition: 0.3s;
+}
+
+.select-wrapper:focus-within::after {
+    transform: translateY(-50%) rotate(180deg);
+}
+
+/* Style for the options list inside the dropdown */
+.custom-input option {
+    background: #0a0a0a; /* Dark background for the list */
+    color: white;
+    padding: 10px;
+}
+
+/* Calendar Icon styling for Date Input */
+.custom-input::-webkit-calendar-picker-indicator {
+    filter: invert(1) sepia(100%) saturate(500%) hue-rotate(10deg); /* Makes icon orange/white */
+    cursor: pointer;
+    opacity: 0.5;
+}
+    </style>
+</head>
+<body>
+
+    <input type="file" id="file-input" accept="image/*">
+
+    <header>
+        <div class="logo">LUXE DRIVE</div>
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); padding: 8px 25px; border-radius: 50px; font-size: 0.6rem; letter-spacing: 2px;">
+            TERMINAL: <span id="header-user" style="color: var(--accent); font-weight: 800;">---</span>
+        </div>
+        <a href="index.html" onclick="logout()" style="font-size: 0.7rem; color: #444; text-decoration: none; font-weight: 800; letter-spacing: 1px;">LOGOUT</a>
+    </header>
+
+    <div class="wrapper">
+        <section class="inventory-sec">
+            <div class="staff-identity-banner">
+                <div class="pfp-wrapper">
+                    <button class="btn-reset-pfp" onclick="resetPFP(event)">✕</button>
+                    <div class="pfp-container" onclick="document.getElementById('file-input').click()">
+                        <img id="pfp-img" src="" style="display: none;">
+                        <div id="pfp-placeholder">👤</div>
+                        <div class="pfp-overlay">UPDATE</div>
+                    </div>
+                </div>
+                <div class="identity-grid">
+                    <div><span class="id-label">Employee</span><span class="id-value" id="disp-name">---</span></div>
+                    <div><span class="id-label">Reporting Manager</span><span class="id-value" id="disp-mgr">---</span></div>
+                    <div><span class="id-label">Designation</span><span class="id-value" id="disp-desig">---</span></div>
+                    <div><span class="id-label">Hub Location</span><span class="id-value" id="disp-loc" style="color:var(--accent)">---</span></div>
+                </div>
+            </div>
+            <div class="grid" id="inventory-grid"></div>
+        </section>
+
+        <section class="side-panel">
+            <div class="ui-card">
+                <span class="sec-title">Authorized Attendance</span>
+                <div class="att-grid">
+                    <div class="att-box"><span>Monthly Cap</span><b id="month-cap">31</b></div>
+                    <div class="att-box"><span>Days Worked</span><b id="stat-worked">28</b></div>
+                    <div class="att-box" style="border-color: #1a1a1a;"><span>Approved OT</span><b id="stat-holiday">0</b></div>
+                    <div class="att-box" style="border-color: var(--accent);"><span>Pay (Est.)</span><b id="salary-total">₹0</b></div>
+                </div>
+                <p style="font-size: 0.45rem; color: #444; text-align: center;">* OT/Holiday pay requires Management Keys</p>
+            </div>
+
+            <div class="ui-card">
+                <span class="sec-title">Request Center</span>
+                <div class="input-group">
+    <label class="id-label">Action Category</label>
+    <div class="input-wrapper select-wrapper">
+        <select id="req-type" class="custom-input">
+            <option value="OT">Holiday Overtime Duty</option>
+            <option value="SL">Medical Leave (Sick)</option>
+            <option value="CL">Casual Leave</option>
+        </select>
+    </div>
+</div>
+
+<div class="input-group">
+    <label class="id-label">Target Date</label>
+    <div class="input-wrapper">
+        <input type="date" id="req-date" class="custom-input">
+    </div>
+</div>
+                <div class="input-group">
+                    <label>Requested Date</label>
+                    <input type="date" id="req-date">
+                </div>
+                <button class="btn-main" onclick="transmitRequest()">Transmit Request</button>
+            </div>
+
+            <span class="sec-title">Salary Archive</span>
+            <div id="archive-list">
+                <div class="history-item" onclick="generateSlip('DECEMBER 2025', 52500)">
+                    <div><span style="font-size: 0.45rem; color:#444">FY 2025-26</span><br><b>DECEMBER</b></div>
+                    <div class="btn-dl">DOWNLOAD</div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div id="print-area">
+        <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px;">
+            <h1>LUXE DRIVE PRIVATE LIMITED</h1>
+            <h2 style="background: #f2f2f2; padding: 10px; margin-top: 15px;">Official Payslip: <span id="p-month"></span></h2>
+        </div>
+        <table class="slip-table">
+            <tr><td><strong>Employee</strong></td><td id="p-name"></td><td><strong>ID</strong></td><td id="p-id"></td></tr>
+        </table>
+        <table class="slip-table">
+            <tr style="background:#000; color:#fff"><th>EARNINGS</th><th>Amount (₹)</th><th>DEDUCTIONS</th><th>Amount (₹)</th></tr>
+            <tr style="font-weight:bold;"><td>GROSS EARNINGS</td><td id="p-gross"></td><td>TOTAL DEDUCTIONS</td><td>800.00</td></tr>
+        </table>
+        <h3>NET PAYOUT: ₹ <span id="p-net"></span></h3>
+    </div>
+
+    <script>
+        const BASIC = 5000;
+        let sold = 0, commAmt = 0, holidayDays = 0; // HolidayDays is now read-only for staff
+
+        window.onload = function() {
+            const u = JSON.parse(localStorage.getItem('loggedUser'));
+            if (!u) { window.location.href = 'index.html'; return; }
+            
+            // Set stats from user data (Simulating manager approval)
+            holidayDays = u.approved_ot || 0; 
+            
+            document.getElementById('header-user').innerText = u.name.toUpperCase();
+            document.getElementById('disp-name').innerText = u.name;
+            document.getElementById('disp-mgr').innerText = u.manager;
+            document.getElementById('disp-desig').innerText = u.designation || "Executive";
+            document.getElementById('disp-loc').innerText = u.loc;
+            document.getElementById('stat-holiday').innerText = holidayDays;
+            document.getElementById('stat-worked').innerText = 28 + holidayDays;
+
+            initPFP(); initInventory(); calculate();
+        };
+
+        function transmitRequest() {
+            const date = document.getElementById('req-date').value;
+            const type = document.getElementById('req-type').value;
+            if(!date) { alert("Select date."); return; }
+            alert(`DATA TRANSMITTED: ${type} request for ${date} sent to Management for Authorization.`);
+        }
+
+        function initPFP() {
+            const pfpImg = document.getElementById('pfp-img');
+            const pfpPlaceholder = document.getElementById('pfp-placeholder');
+            const saved = localStorage.getItem('luxe-pfp');
+            if(saved) { pfpImg.src = saved; pfpImg.style.display = 'block'; pfpPlaceholder.style.display = 'none'; }
+            document.getElementById('file-input').onchange = function(e) {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    pfpImg.src = ev.target.result; pfpImg.style.display = 'block'; pfpPlaceholder.style.display = 'none';
+                    localStorage.setItem('luxe-pfp', ev.target.result);
+                };
+                reader.readAsDataURL(e.target.files[0]);
+            };
+        }
+
+        function resetPFP(e) { e.stopPropagation(); localStorage.removeItem('luxe-pfp'); document.getElementById('pfp-img').style.display = 'none'; document.getElementById('pfp-placeholder').style.display = 'block'; }
+
+        function initInventory() {
+            const grid = document.getElementById('inventory-grid');
+            for(let i=1; i<=50; i++) {
+                const price = Math.floor(Math.random() * 200000 + 150000);
+                const card = document.createElement('div');
+                card.className = 'car-card';
+                card.id = `car-${i}`;
+                card.innerHTML = `
+                    <div class="car-img-box"><img src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&q=80&w=400"></div>
+                    <div class="car-details">
+                        <span style="font-size:0.45rem; color:#444">UNIT-LX-${1000+i}</span>
+                        <h4 style="font-size:0.75rem; margin:5px 0;">LUXE MODEL ${i}</h4>
+                        <span class="car-price">₹${price.toLocaleString()}</span>
+                        <button class="btn-sell" onclick="processSale(${i}, ${price})">Mark Sold</button>
+                    </div>`;
+                grid.appendChild(card);
+            }
+        }
+
+        function processSale(id, price) {
+            const card = document.getElementById(`car-${id}`);
+            if(!card.classList.contains('sold')) {
+                card.classList.add('sold'); sold++;
+                if(sold > 3) commAmt += (price * 0.01);
+                calculate();
+            }
+        }
+
+        function calculate() {
+            const u = JSON.parse(localStorage.getItem('loggedUser'));
+            const otPay = holidayDays * ((u.basic_daily || 200) * 1.5);
+            const gross = BASIC + commAmt + otPay + (u.hra || 2500) + (u.special_allowance || 1200);
+            document.getElementById('salary-total').innerText = `₹${(gross - 800).toLocaleString()}`;
+        }
+
+        function generateSlip(month, forceNet) {
+            const u = JSON.parse(localStorage.getItem('loggedUser'));
+            document.getElementById('p-month').innerText = month;
+            document.getElementById('p-name').innerText = u.name;
+            document.getElementById('p-id').innerText = u.token || "LX-STF-01";
+            document.getElementById('p-gross').innerText = (forceNet + 800).toLocaleString();
+            document.getElementById('p-net').innerText = forceNet.toLocaleString();
+            window.print();
+        }
+
+        function logout() { localStorage.removeItem('loggedUser'); window.location.href = 'index.html'; }
+        function transmitRequest() {
+    const typeField = document.getElementById('req-type');
+    const dateField = document.getElementById('req-date');
+    const btn = event.currentTarget;
+
+    if (!dateField.value) {
+        // Visual feedback for error
+        dateField.style.borderColor = "var(--error)";
+        setTimeout(() => dateField.style.borderColor = "var(--border)", 2000);
+        return;
+    }
+
+    // Change button state to "Transmitting"
+    const originalText = btn.innerText;
+    btn.innerText = "TRANSMITTING DATA...";
+    btn.style.opacity = "0.6";
+    btn.disabled = true;
+
+    // Simulate terminal delay
+    setTimeout(() => {
+        alert(`PROTOCOL SUCCESS: ${typeField.options[typeField.selectedIndex].text} for ${dateField.value} sent to Management.`);
+        
+        // Reset Button
+        btn.innerText = originalText;
+        btn.style.opacity = "1";
+        btn.disabled = false;
+        dateField.value = ""; // Clear date
+    }, 1200);
+}
+    </script>
+</body>
+</html>

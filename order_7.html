@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Checkout | Luxe Drive Elite</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        /* --- CORE THEME & ANIMATIONS --- */
+        :root { 
+            --accent: #e67e22; 
+            --border: rgba(255, 255, 255, 0.1); 
+            --bg: #050505; 
+            --card-bg: #0f0f0f;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { background: var(--bg); color: white; height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+
+        .viewport { 
+            width: 95vw; height: 95vh; background: rgba(10, 10, 10, 0.8); backdrop-filter: blur(30px); 
+            border-radius: 40px; border: 1px solid var(--border); display: flex; flex-direction: column; 
+            overflow: hidden; position: relative; 
+        }
+
+        .header { padding: 30px 50px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; }
+        .brand { font-weight: 900; font-size: 1.5rem; letter-spacing: -1px; }
+        .step-txt { font-size: 0.7rem; letter-spacing: 3px; font-weight: 900; color: var(--accent); text-transform: uppercase; }
+
+        /* --- CONTENT AREA --- */
+        .content-area { flex: 1; padding: 40px 60px; overflow-y: auto; display: flex; justify-content: center; }
+        .section { width: 100%; max-width: 1000px; display: none; animation: slideUp 0.6s cubic-bezier(0.23, 1, 0.32, 1); }
+        .section.active { display: block; }
+
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- LUXE CARDS (INCREASED HEIGHT) --- */
+        .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 30px; }
+        .pay-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 20px; }
+        
+        .luxe-card {
+            background: var(--card-bg); border: 1px solid var(--border); border-radius: 30px;
+            overflow: hidden; cursor: pointer; transition: all 0.5s ease;
+            display: flex; flex-direction: column; min-height: 550px; /* Enhanced height */
+        }
+
+        .luxe-card:hover { 
+            transform: translateY(-15px) scale(1.02); 
+            border-color: var(--accent);
+            box-shadow: 0 40px 80px rgba(0,0,0,0.6);
+        }
+
+        .card-img { 
+            width: 100%; height: 300px; object-fit: cover; 
+            filter: grayscale(0.2); transition: 0.8s; 
+        }
+        .luxe-card:hover .card-img { filter: grayscale(0); transform: scale(1.1); }
+
+        .card-content { padding: 35px; flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
+        .luxe-card h3 { font-size: 1.8rem; font-weight: 900; margin-bottom: 5px; }
+        .price-tag { font-size: 2.2rem; font-weight: 900; color: var(--accent); }
+        .desc { color: #666; font-size: 0.9rem; line-height: 1.6; }
+
+        /* --- UI COMPONENTS --- */
+        .input-group { margin-bottom: 25px; }
+        .label { font-size: 0.65rem; color: #555; margin-bottom: 10px; display: block; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; }
+        input { 
+            width: 100%; padding: 20px; background: rgba(255,255,255,0.02); 
+            border: 1px solid var(--border); color: white; border-radius: 15px; outline: none; transition: 0.3s;
+        }
+        input:focus { border-color: var(--accent); background: rgba(255,255,255,0.05); }
+
+        .btn-main { 
+            width: 100%; padding: 22px; background: #fff; color: #000; border: none; 
+            border-radius: 50px; font-weight: 900; cursor: pointer; text-transform: uppercase; 
+            letter-spacing: 2px; transition: 0.4s; margin-top: 20px;
+        }
+        .btn-main:hover { transform: scale(1.02); box-shadow: 0 20px 40px rgba(255,255,255,0.1); }
+
+        /* --- MODAL GATEWAY --- */
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(15px); }
+        .modal-content { background: #0a0a0a; width: 480px; padding: 45px; border-radius: 40px; border: 1px solid #333; position: relative; }
+        .file-upload { border: 2px dashed #222; padding: 30px; border-radius: 20px; text-align: center; cursor: pointer; margin-top: 20px; transition: 0.3s; }
+        .file-upload:hover { border-color: var(--accent); background: rgba(230, 126, 34, 0.03); }
+    </style>
+</head>
+<body>
+
+<div class="viewport">
+    <div class="header">
+        <div class="brand">LUXE DRIVE ELITE</div>
+        <div id="step-label" class="step-txt">STEP 1: IDENTITY</div>
+    </div>
+
+    <div class="content-area">
+        <div id="sec-info" class="section active">
+            <h1 style="font-size: 2.5rem; margin-bottom: 10px;">Client Profile</h1>
+            <p style="color:#444; margin-bottom:40px;">Credentials required for legal allocation and Proforma generation.</p>
+            <div class="input-group"><span class="label">Full Legal Name</span><input type="text" id="cust-name" placeholder="Johnathan Doe"></div>
+            <div class="input-group"><span class="label">Permanent Address</span><input type="text" id="cust-addr" placeholder="House No, Street, City"></div>
+            <div class="input-group"><span class="label">Priority Phone</span><input type="tel" id="cust-phone" placeholder="+91"></div>
+            <button class="btn-main" onclick="toTierSelection()">Continue Allocation</button>
+        </div>
+
+        <div id="sec-tier" class="section">
+            <h1>Acquisition Tier</h1>
+            <p style="color:#444; margin-bottom:30px;">Choose your financial entry point for this production cycle.</p>
+            <div class="card-grid">
+                <div class="luxe-card" onclick="selectTier('Booking Token', 200000)">
+                    <img src="https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?auto=format&fit=crop&w=800&q=80" class="card-img">
+                    <div class="card-content">
+                        <div>
+                            <h3>Booking Token</h3>
+                            <p class="price-tag">₹2,00,000</p>
+                            <p class="desc">Priority production slot reservation. Initiates the bespoke design phase and color selection.</p>
+                        </div>
+                        <p style="color:var(--accent); font-weight:900; font-size:0.7rem; text-transform:uppercase;">Select Entry</p>
+                    </div>
+                </div>
+                <div class="luxe-card" onclick="selectTier('Down Payment', 5000000)">
+                    <img src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=800&q=80" class="card-img">
+                    <div class="card-content">
+                        <div>
+                            <h3>Down Payment</h3>
+                            <p class="price-tag">₹50,00,000</p>
+                            <p class="desc">Immediate vehicle chassis allocation. Includes priority logistics and RTO documentation clearance.</p>
+                        </div>
+                        <p style="color:var(--accent); font-weight:900; font-size:0.7rem; text-transform:uppercase;">Select Priority</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="sec-methods" class="section">
+            <h1>Secure Vault Access</h1>
+            <p style="color:#444; margin-bottom:30px;">Processing <span id="tier-display" style="color:#fff;"></span></p>
+            <div class="pay-grid">
+                <div class="luxe-card" style="min-height: 400px;" onclick="openGate('upi')">
+                    <img src="https://images.unsplash.com/photo-1621416848440-23690bd0fc5b?auto=format&fit=crop&w=400&q=80" class="card-img" style="height:200px;">
+                    <div class="card-content"><h3>💠 UPI</h3><p class="desc">Instant Sync</p></div>
+                </div>
+                <div class="luxe-card" style="min-height: 400px;" onclick="openGate('card')">
+                    <img src="https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?auto=format&fit=crop&w=400&q=80" class="card-img" style="height:200px;">
+                    <div class="card-content"><h3>💳 CARD</h3><p class="desc">Credit / EMI</p></div>
+                </div>
+                <div class="luxe-card" style="min-height: 400px;" onclick="openGate('chq')">
+                    <img src="https://images.unsplash.com/photo-1580519542036-c47de6196ba5?auto=format&fit=crop&w=400&q=80" class="card-img" style="height:200px;">
+                    <div class="card-content"><h3>🏦 CHEQUE</h3><p class="desc">Physical Bank</p></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="sec-dashboard" class="section" style="text-align:center;">
+            <div style="font-size: 6rem; margin-bottom: 20px;" id="status-icon">⏳</div>
+            <h1 id="dash-title">Verification Pending</h1>
+            <p id="dash-sub" style="color:#666; margin-bottom:40px;">Our Elite Relations Manager is reviewing your financial assets and proof.</p>
+            <div id="pi-container" style="display:none;">
+                <button class="btn-main" onclick="generatePI()" style="max-width:400px;">Download Indian Standard PI</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="modal-gate">
+        <div class="modal-content">
+            <h2 id="modal-title" style="margin-bottom:20px;">Financial Vault</h2>
+            <div id="upi-qr" style="text-align:center; display:none;">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=LUXE" style="background:#fff; padding:15px; border-radius:15px; margin-bottom:20px;">
+            </div>
+            <div class="input-group"><span class="label">Transaction ID / Ref No</span><input type="text" id="txn-id" placeholder="12 Digit Reference"></div>
+            <div class="file-upload" onclick="document.getElementById('file-input').click()">
+                <span id="file-status" style="font-size:0.8rem; color:#888;">📎 Attach Official Payment Proof (PDF)</span>
+                <input type="file" id="file-input" style="display:none;" accept="application/pdf" onchange="handleFile(event)">
+            </div>
+            <button class="btn-main" onclick="submitPayment()">Submit to Manager</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let DB = {
+        user: {},
+        payment: { tier: '', amount: 0, status: 'INIT', fileData: null, fileName: '' }
+    };
+
+    function switchSection(id, label) {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        document.getElementById('step-label').innerText = label;
+        DB.currentSection = id;
+    }
+
+    function toTierSelection() {
+        DB.user.name = document.getElementById('cust-name').value;
+        DB.user.addr = document.getElementById('cust-addr').value;
+        DB.user.phone = document.getElementById('cust-phone').value;
+        if(!DB.user.name || !DB.user.phone) return alert("Credentials Required");
+        switchSection('sec-tier', 'STEP 2: ACQUISITION');
+    }
+
+    function selectTier(name, amt) {
+        DB.payment.tier = name;
+        DB.payment.amount = amt;
+        document.getElementById('tier-display').innerText = name + " (₹" + amt.toLocaleString() + ")";
+        switchSection('sec-methods', 'STEP 3: VAULT');
+    }
+
+    function openGate(m) {
+        DB.payment.method = m;
+        document.getElementById('modal-gate').style.display = 'flex';
+        document.getElementById('upi-qr').style.display = (m === 'upi') ? 'block' : 'none';
+    }
+
+    function closeGate() { document.getElementById('modal-gate').style.display = 'none'; }
+
+    function handleFile(e) {
+        const file = e.target.files[0];
+        if (file && file.type === "application/pdf") {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                DB.payment.fileData = ev.target.result; // Base64
+                DB.payment.fileName = file.name;
+                document.getElementById('file-status').innerText = "✅ " + file.name;
+                document.getElementById('file-status').style.color = "#27ae60";
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function submitPayment() {
+        if(!DB.payment.fileData) return alert("PDF Proof is mandatory for allocation.");
+        DB.payment.status = 'PENDING';
+        localStorage.setItem('luxe_session', JSON.stringify(DB));
+        closeGate();
+        switchSection('sec-dashboard', 'STEP 4: VERIFICATION');
+    }
+
+    // Polling for Manager Approval
+    setInterval(() => {
+        const raw = localStorage.getItem('luxe_session');
+        if(raw) {
+            const synced = JSON.parse(raw);
+            if(synced.payment.status === 'APPROVED' && DB.payment.status !== 'APPROVED') {
+                DB.payment.status = 'APPROVED';
+                document.getElementById('status-icon').innerText = "👑";
+                document.getElementById('dash-title').innerText = "Acquisition Authorized";
+                document.getElementById('dash-sub').innerText = "Your allocation is verified. Download your Proforma Invoice below.";
+                document.getElementById('pi-container').style.display = 'block';
+            }
+        }
+    }, 2000);
+
+    function generatePI() {
+        const win = window.open('', '_blank');
+        const exShowroom = 35000000; // Base model price for Indian PI demo
+        const rto = exShowroom * 0.12;
+        const ins = exShowroom * 0.03;
+        const total = exShowroom + rto + ins + 500; // Handling/Fastag
+
+        win.document.write(`
+            <html><head><title>Proforma Invoice</title><style>
+                body{font-family:sans-serif; padding:50px; color:#111; line-height:1.4;}
+                .h{border-bottom:3px solid #000; padding-bottom:15px; margin-bottom:40px; display:flex; justify-content:space-between; align-items:center;}
+                .grid{display:grid; grid-template-columns: 1fr 1fr; gap:50px; margin-bottom:40px;}
+                table{width:100%; border-collapse:collapse; margin-top:20px;} 
+                th,td{padding:12px; border:1px solid #eee; text-align:left;}
+                .total{font-size:1.6rem; font-weight:bold; color:#e67e22; text-align:right; margin-top:30px; border-top:2px solid #000; padding-top:15px;}
+            </style></head><body>
+                <div class="h"><div><h1>LUXE DRIVE MOTORS</h1><p>Premium Car Acquisition</p></div><div style="text-align:right"><h3>PROFORMA INVOICE</h3><p>Date: ${new Date().toLocaleDateString()}</p></div></div>
+                <div class="grid">
+                    <div><strong>🏢 SELLER DETAILS</strong><br>Luxe Drive Elite Showroom<br>Madhav Atria, Surat, Gujarat<br>GSTIN: 24AAACL1234F1Z5<br>Contact: +91 98000 00000</div>
+                    <div><strong>👤 BUYER DETAILS</strong><br>${DB.user.name.toUpperCase()}<br>${DB.user.addr}<br>Phone: ${DB.user.phone}</div>
+                </div>
+                <h3>🚗 VEHICLE & PRICE BREAKUP</h3>
+                <table>
+                    <tr style="background:#f9f9f9;"><th>Description</th><th>Amount (INR)</th></tr>
+                    <tr><td>Ex-Showroom Price (Luxe Elite Series)</td><td>₹${exShowroom.toLocaleString()}</td></tr>
+                    <tr><td>Registration & Road Tax (RTO Approx 12%)</td><td>₹${rto.toLocaleString()}</td></tr>
+                    <tr><td>Comprehensive Insurance (Zero-Dep)</td><td>₹${ins.toLocaleString()}</td></tr>
+                    <tr><td>Fastag & Logistics Charges</td><td>₹500</td></tr>
+                </table>
+                <div class="total">Estimated On-Road Value: ₹${total.toLocaleString()}</div>
+                <div style="margin-top:40px; font-size:0.8rem; color:#666;">
+                    <p><strong>Note:</strong> This is a computer-generated Proforma Invoice and does not convey ownership. Final Tax Invoice will be issued post full payment.</p>
+                    <p><strong>Bank:</strong> HDFC Bank | A/c: 50200012345 | IFSC: HDFC0001234</p>
+                </div>
+                <script>window.print();<\/script>
+            </body></html>
+        `);
+    }
+</script>
+</body>
+</html>

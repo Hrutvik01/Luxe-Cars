@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luxe Drive | Global Fleet</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { display: none; }
+        body { background: #000; height: 100vh; overflow: hidden; display: flex; justify-content: center; align-items: center; }
+
+        /* --- MAIN SLIDER UI --- */
+        .vertical-slider {
+            width: 96vw; height: 92vh; overflow-y: scroll;
+            scroll-snap-type: y mandatory; border-radius: 60px;
+            position: relative; background: #111; scrollbar-width: none;
+        }
+
+        .brand-container {
+            width: 100%; height: 100%; scroll-snap-align: start;
+            display: flex; overflow-x: scroll; scroll-snap-type: x mandatory;
+        }
+
+        .model-slide {
+            min-width: 100%; height: 100%; scroll-snap-align: start;
+            position: relative; display: flex; flex-direction: column;
+            transition: background 0.8s cubic-bezier(0.4, 0, 0.2, 1); overflow: hidden; 
+        }
+
+        .side-nav {
+            position: fixed; left: 5vw; top: 50%; transform: translateY(-50%);
+            display: flex; flex-direction: column; gap: 30px; z-index: 1000;
+        }
+        .side-nav a {
+            color: white; text-decoration: none; font-size: 0.6rem; font-weight: 700; letter-spacing: 2px;
+            text-transform: uppercase; writing-mode: vertical-lr; transform: rotate(180deg); opacity: 0.3; transition: 0.3s;
+        }
+        .side-nav a:hover { opacity: 1; color: #e67e22; }
+
+        .bg-text {
+            position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%);
+            width: 95%; text-align: center; font-size: clamp(4rem, 16vw, 18vw); 
+            font-weight: 900; color: rgba(255, 255, 255, 0.08); text-transform: uppercase; pointer-events: none; z-index: 1;
+        }
+
+        .main-display { flex-grow: 1; display: flex; justify-content: center; align-items: center; z-index: 2; }
+        .car-img { width: 100%; max-width: 750px; filter: drop-shadow(0 50px 40px rgba(0,0,0,0.5)); transform: scale(0.85); transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1); object-fit: contain; max-height: 40vh; }
+        .model-slide.active .car-img { transform: scale(1.05); }
+
+        /* --- ENGINE SHAKE ANIMATION --- */
+        @keyframes engineShake {
+            0% { transform: scale(1.05) translate(1px, 1px) rotate(0deg); }
+            10% { transform: scale(1.05) translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: scale(1.05) translate(-3px, 0px) rotate(1deg); }
+            30% { transform: scale(1.05) translate(3px, 2px) rotate(0deg); }
+            40% { transform: scale(1.05) translate(1px, -1px) rotate(1deg); }
+            50% { transform: scale(1.05) translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: scale(1.05) translate(-3px, 1px) rotate(0deg); }
+            70% { transform: scale(1.05) translate(3px, 1px) rotate(-1deg); }
+            80% { transform: scale(1.05) translate(-1px, -1px) rotate(1deg); }
+            90% { transform: scale(1.05) translate(1px, 2px) rotate(0deg); }
+            100% { transform: scale(1.05) translate(1px, -2px) rotate(-1deg); }
+        }
+        .car-img.shaking {
+            animation: engineShake 0.4s infinite;
+            filter: drop-shadow(0 55px 45px rgba(230,126,34,0.3));
+        }
+
+        /* --- FOOTER SPEC CARD --- */
+        .glass-footer {
+            margin: 0 60px 50px 140px; background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(30px); border-radius: 40px; padding: 20px 40px;
+            display: flex; align-items: center; gap: 20px; color: white; border: 1px solid rgba(255, 255, 255, 0.15); z-index: 10;
+            position: relative; justify-content: space-between;
+        }
+
+        .car-identity { min-width: 140px; }
+        .car-identity h2 { font-size: 1.6rem; font-weight: 900; letter-spacing: 1px; margin-bottom: 5px; }
+
+        .spec-card {
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between;
+            gap: 20px; flex: 1;
+        }
+        
+        .specs-data { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; text-align: center; flex: 1; }
+        .specs-data div span { display: block; font-weight: 900; font-size: 0.85rem; color: #fff; }
+        .specs-data div label { font-size: 0.5rem; opacity: 0.5; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* --- TALL GLASS START BUTTON --- */
+        .btn-start-engine {
+            height: 100px; width: 80px; 
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 25px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            cursor: pointer; transition: 0.2s; gap: 10px; user-select: none;
+        }
+        .btn-start-engine:hover { background: rgba(230, 126, 34, 0.2); border-color: #e67e22; transform: translateY(-3px); }
+        .btn-start-engine:active { transform: translateY(2px) scale(0.95); background: rgba(230, 126, 34, 0.5); box-shadow: inset 0 5px 15px rgba(0,0,0,0.5); }
+        .btn-start-engine img { width: 35px; filter: invert(1); transition: 0.3s; }
+        .btn-start-engine:active img { filter: invert(1) drop-shadow(0 0 5px #fff); }
+        .btn-start-engine span { font-size: 0.5rem; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; color: #fff; }
+
+        .btn-action {
+            background: #fff; color: #000; padding: 10px 20px; border-radius: 30px;
+            border: none; font-weight: 800; font-size: 0.65rem; text-transform: uppercase; cursor: pointer; transition: 0.3s;
+        }
+        .btn-action:hover { background: #e67e22; color: #fff; transform: translateY(-2px); }
+
+        .btn-details {
+            background: #e67e22; color: #fff; padding: 10px 18px; border-radius: 20px;
+            border: none; font-weight: 800; font-size: 0.65rem; text-transform: uppercase; cursor: pointer; transition: 0.3s;
+            white-space: nowrap;
+        }
+        .btn-details:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(230,126,34,0.4); }
+
+        /* --- POPUP MODAL --- */
+        .custom-popup {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+            display: none; justify-content: center; align-items: center; z-index: 20000; backdrop-filter: blur(10px);
+        }
+        
+        .popup-card {
+            background: #0f0f0f; width: 90vw; max-width: 1000px; height: 85vh; max-height: 720px;
+            border-radius: 25px; display: flex; color: white; position: relative;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.8); overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.1); transition: 0.3s;
+        }
+        
+        .popup-card.compare-mode { max-width: 1200px; }
+
+        .popup-left {
+            flex: 1; background: #181818; display: flex; align-items: center; justify-content: center;
+            border-right: 1px solid rgba(255,255,255,0.05); padding: 40px; position: relative;
+        }
+        .popup-left img { width: 100%; filter: drop-shadow(0 20px 30px rgba(0,0,0,0.8)); transform: scale(1.1); max-height: 350px; object-fit: contain; }
+        
+        .popup-right {
+            flex: 1.2; display: flex; flex-direction: column; padding: 40px; background: #0f0f0f; width: 100%;
+        }
+
+        .popup-header { margin-bottom: 20px; }
+        .popup-header h1 { font-family: 'Inter', sans-serif; font-weight: 900; font-size: 2rem; margin-bottom: 2px; text-transform: uppercase; color: #fff; letter-spacing: -1px; }
+        .popup-header p { font-size: 0.7rem; color: #888; letter-spacing: 2px; text-transform: uppercase; font-weight: 700; }
+
+        .build-summary-title { font-size: 1.2rem; font-weight: 900; margin-bottom: 15px; color: #fff; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; text-transform: uppercase; }
+
+        .specs-scroll-area { flex: 1; overflow-y: auto; padding-right: 15px; margin-bottom: 20px; }
+        .specs-scroll-area::-webkit-scrollbar { display: block; width: 6px; }
+        .specs-scroll-area::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+
+        .spec-section { margin-bottom: 25px; }
+        .spec-section h3 { font-size: 0.75rem; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px; font-weight: 800; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 5px; }
+        
+        .spec-row { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 10px; }
+        .spec-row span:first-child { color: #aaa; }
+        .spec-row span:last-child { font-weight: 700; text-align: right; color: #fff; }
+
+        .popup-footer { border-top: 1px solid rgba(255,255,255,0.1); padding-top: 25px; }
+        .price-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        .price-row span:first-child { font-size: 1.1rem; font-weight: 700; color: #fff; }
+        .price-row span:last-child { font-size: 2rem; font-weight: 900; color: #fff; letter-spacing: -1px; }
+
+        .popup-buttons { display: flex; gap: 15px; }
+        .btn-pop {
+            flex: 1; padding: 16px; border-radius: 12px; font-weight: 800; font-size: 0.8rem; 
+            text-transform: uppercase; cursor: pointer; transition: 0.3s; text-align: center; border: none; letter-spacing: 1px;
+        }
+        .btn-pop-back { background: #1a1a1a; border: 1px solid #333; color: white; }
+        .btn-pop-back:hover { background: #222; }
+        .btn-pop-order { background: white; color: black; }
+        .btn-pop-order:hover { background: #e0e0e0; }
+
+        .brand-dots { position: fixed; right: 40px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 15px; z-index: 1000; }
+        .dot { width: 6px; height: 6px; background: rgba(255,255,255,0.2); border-radius: 50%; transition: 0.4s; cursor: pointer; }
+        .dot.active { background: white; transform: scale(2.5); box-shadow: 0 0 15px white; }
+        .config-dots { display: flex; gap: 8px; margin-top: 5px; }
+        .color-dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid white; cursor: pointer; transition: 0.2s; }
+        .color-dot:hover { transform: scale(1.3); }
+
+        /* --- COMPARE GRID --- */
+        .compare-mode .popup-left { display: none; }
+        .compare-grid { display: none; width: 100%; grid-template-columns: 1fr 1fr; gap: 30px; }
+        .compare-mode .compare-grid { display: grid; }
+        .compare-mode .specs-scroll-area > div:not(.compare-grid) { display: none; }
+        
+        .compare-glass-card { background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; padding: 30px; display: flex; flex-direction: column; transition: 0.3s; }
+        .compare-glass-card.selected { border-color: #e67e22; box-shadow: 0 0 30px rgba(230, 126, 34, 0.15); }
+        .compare-glass-card img { width: 100%; max-height: 140px; object-fit: contain; margin-bottom: 20px; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5)); }
+        .comp-price { text-align: center; color: #e67e22; font-weight: 700; margin-bottom: 20px; }
+
+        .custom-check-container { display: flex; align-items: center; gap: 12px; cursor: pointer; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; justify-content: center; transition: 0.3s; }
+        .custom-check-container.checked { background: rgba(230, 126, 34, 0.15); border-color: #e67e22; }
+        .check-box { width: 20px; height: 20px; border: 2px solid #555; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: 0.3s; }
+        .custom-check-container.checked .check-box { background: #e67e22; border-color: #e67e22; }
+        .custom-check-container.checked .check-box::after { content: '✔'; color: white; font-size: 12px; font-weight: 900; }
+        
+        .btn-comp-customize { width: 100%; padding: 12px; border-radius: 12px; font-weight: 800; font-size: 0.7rem; background: transparent; color: white; border: 1px solid #444; text-transform: uppercase; cursor: pointer; transition: 0.3s; margin-top: 10px; }
+        .btn-comp-customize:hover { border-color: #e67e22; color: #e67e22; }
+
+        .close-popup { position: absolute; top: 20px; right: 25px; cursor: pointer; font-size: 1.5rem; opacity: 0.5; transition: 0.3s; z-index: 100; }
+        .close-popup:hover { opacity: 1; transform: rotate(90deg); }
+    </style>
+</head>
+<body>
+
+    <audio id="click-sound" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"></audio>
+    <audio id="dynamic-engine"></audio>
+
+    <div class="side-nav">
+        <a href="login_10.html">Login</a>
+        <a href="inventory_2.html">Inventory</a>
+        <a href="customize_1.html">Customize</a>
+        <a href="support_2.html">Support</a>
+    </div>
+
+    <div class="brand-dots" id="dots"></div>
+    <div class="vertical-slider" id="v-slider"></div>
+
+    <div class="custom-popup" id="details-popup">
+        <div class="popup-card" id="pop-card">
+            <span class="close-popup" onclick="closePopup()">✕</span>
+            <div class="popup-left"><img id="pop-img" src=""></div>
+            <div class="popup-right">
+                <div class="popup-header"><h1 id="pop-name">CAR NAME</h1><p id="pop-subtitle">Configuration Studio</p></div>
+                <div class="build-summary-title" id="pop-summary-title">TECHNICAL SPECIFICATIONS</div>
+                <div class="specs-scroll-area">
+                    <div id="pop-specs"></div>
+                    <div class="compare-grid" id="compare-grid"></div>
+                </div>
+                <div class="popup-footer">
+                    <div class="price-row"><span>Total Price</span><span id="pop-price">$0</span></div>
+                    <div class="popup-buttons">
+                        <button class="btn-pop btn-pop-back" onclick="closePopup()">Back</button>
+                        <button class="btn-pop btn-pop-order" onclick="placeOrder()">Place Order</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const getSpecs = (type, cap, cyl, hp, torq, turbo, gears, drv, mil, top, acc, wt) => ({
+            engine: { type: type, cap: cap, cyl: cyl, power: `${hp} PS @ 7500 rpm`, torque: torq, turbo: turbo, inj: "Direct Injection" },
+            trans: { type: "Automatic / DCT", gears: gears, drive: drv },
+            fuel: { mileage: mil, tank: "72 Litres", evcap: type === "Electric" ? "100 kWh" : "N/A" },
+            dims: { lwh: "4600 x 1950 x 1200 mm", base: "2670 mm", ground: "115 mm", boot: "150 Litres", seats: "2" },
+            safety: { airbags: "6", abs: "Yes", esc: "Yes", hill: "Yes", rating: "5 Star Global NCAP" },
+            interior: { screen: "10-inch Touchscreen", connect: "Wireless Apple CarPlay", climate: "Dual-zone Auto", roof: "Optional", cruise: "Adaptive Cruise Control", start: "Push Button Start", cam: "360 Camera" },
+            top: top, hp: hp, accel: acc, weight: wt
+        });
+
+        // Unique Model-Level Internal Audio DB
+        const carData = [
+            { brand: "MCLAREN", color: "#e67e22", models: [
+                { name: "750S", price: "$324,000", img: "https://www.pngplay.com/wp-content/uploads/13/McLaren-750S-PNG-HD-Quality.png", colors: ['#e67e22', '#3498db', '#fff'], sound: "sounds/mclaren_750s.mp3", specs: getSpecs("Petrol", "4000cc", "8", "750", "800 Nm", "Twin-Turbo", "7", "RWD", "8.2 km/l", "332 km/h", "2.8s", "1277 kg") },
+                { name: "P1", price: "$1,350,000", img: "https://www.pngplay.com/wp-content/uploads/13/McLaren-P1-Transparent-File.png", colors: ['#f1c40f', '#000', '#3498db'], sound: "sounds/mclaren_p1.mp3", specs: getSpecs("Hybrid", "3800cc", "8", "903", "900 Nm", "Twin-Turbo", "7", "RWD", "12.0 km/l", "350 km/h", "2.8s", "1395 kg") },
+                { name: "GTS", price: "$224,000", img: "https://purepng.com/public/uploads/large/purepng.com-orange-mclaren-720s-carcarvehiclemclaren-631522335133y97id.png", colors: ['#e67e22', '#000', '#fff'], sound: "sounds/mclaren_gts.mp3", specs: getSpecs("Petrol", "4000cc", "8", "626", "630 Nm", "Twin-Turbo", "7", "RWD", "9.5 km/l", "326 km/h", "3.2s", "1520 kg") },
+                { name: "Artura", price: "$233,000", img: "https://www.pngplay.com/wp-content/uploads/13/McLaren-Artura-Transparent-File.png", colors: ['#2ecc71', '#e67e22', '#3498db'], sound: "sounds/mclaren_artura.mp3", specs: getSpecs("Hybrid", "3000cc", "6", "671", "720 Nm", "Twin-Turbo", "8", "RWD", "21 km/l", "330 km/h", "3.0s", "1395 kg") },
+                { name: "Senna", price: "$1,000,000", img: "https://www.pngplay.com/wp-content/uploads/13/McLaren-Senna-PNG-HD-Quality.png", colors: ['#000', '#fff', '#e67e22'], sound: "sounds/mclaren_senna.mp3", specs: getSpecs("Petrol", "4000cc", "8", "789", "800 Nm", "Twin-Turbo", "7", "RWD", "7.5 km/l", "340 km/h", "2.8s", "1198 kg") },
+                { name: "720S", price: "$299,000", img: "https://purepng.com/public/uploads/large/purepng.com-orange-mclaren-720s-carcarvehiclemclaren-631522335133y97id.png", colors: ['#e67e22', '#3498db', '#000'], sound: "sounds/mclaren_720s.mp3", specs: getSpecs("Petrol", "4000cc", "8", "710", "770 Nm", "Twin-Turbo", "7", "RWD", "8.5 km/l", "341 km/h", "2.9s", "1419 kg") },
+                { name: "765LT", price: "$358,000", img: "https://www.pngplay.com/wp-content/uploads/13/McLaren-750S-PNG-HD-Quality.png", colors: ['#3498db', '#e67e22', '#fff'], sound: "sounds/mclaren_765lt.mp3", specs: getSpecs("Petrol", "4000cc", "8", "755", "800 Nm", "Twin-Turbo", "7", "RWD", "8.0 km/l", "330 km/h", "2.8s", "1229 kg") },
+                { name: "Elva", price: "$1,690,000", img: "https://www.pngplay.com/wp-content/uploads/13/McLaren-P1-Transparent-File.png", colors: ['#000', '#fff', '#e67e22'], sound: "sounds/mclaren_elva.mp3", specs: getSpecs("Petrol", "4000cc", "8", "804", "800 Nm", "Twin-Turbo", "7", "RWD", "7.0 km/l", "326 km/h", "2.8s", "1148 kg") },
+                { name: "Speedtail", price: "$2,250,000", img: "https://www.pngplay.com/wp-content/uploads/13/McLaren-Artura-Transparent-File.png", colors: ['#f1c40f', '#000', '#3498db'], sound: "sounds/mclaren_speedtail.mp3", specs: getSpecs("Hybrid", "4000cc", "8", "1036", "1150 Nm", "Twin-Turbo", "7", "RWD", "10.0 km/l", "403 km/h", "2.5s", "1430 kg") },
+                { name: "GT", price: "$200,000", img: "https://purepng.com/public/uploads/large/purepng.com-orange-mclaren-720s-carcarvehiclemclaren-631522335133y97id.png", colors: ['#7f8c8d', '#e67e22', '#000'], sound: "sounds/mclaren_gt.mp3", specs: getSpecs("Petrol", "4000cc", "8", "612", "630 Nm", "Twin-Turbo", "7", "RWD", "9.8 km/l", "326 km/h", "3.2s", "1530 kg") }
+            ]},
+            { brand: "LAMBORGHINI", color: "#d35400", models: [
+                { name: "Revuelto", price: "$608,000", img: "https://www.pngplay.com/wp-content/uploads/13/Lamborghini-Revuelto-PNG-Photos.png", colors: ['#d35400', '#000', '#2ecc71'], sound: "sounds/lambo_revuelto.mp3", specs: getSpecs("Hybrid", "6498cc", "12", "1001", "725 Nm", "Nat. Asp.", "8", "AWD", "6.5 km/l", "350 km/h", "2.5s", "1772 kg") },
+                { name: "Urus Performante", price: "$237,000", img: "https://www.pngplay.com/wp-content/uploads/13/Lamborghini-Urus-Performante-PNG-Photos.png", colors: ['#f1c40f', '#000', '#d35400'], sound: "sounds/lambo_urus.mp3", specs: getSpecs("Petrol", "3996cc", "8", "657", "850 Nm", "Twin-Turbo", "8", "AWD", "7.8 km/l", "306 km/h", "3.3s", "2150 kg") },
+                { name: "Huracan STO", price: "$331,000", img: "https://www.pngplay.com/wp-content/uploads/13/Lamborghini-Huracan-STO-PNG-HD-Quality.png", colors: ['#3498db', '#fff', '#d35400'], sound: "sounds/lambo_huracan_sto.mp3", specs: getSpecs("Petrol", "5204cc", "10", "630", "565 Nm", "Nat. Asp.", "7", "RWD", "7.2 km/l", "310 km/h", "3.0s", "1339 kg") },
+                { name: "Aventador", price: "$500,000", img: "https://www.pngplay.com/wp-content/uploads/13/Lamborghini-Aventador-PNG-HD-Quality.png", colors: ['#000', '#fff', '#d35400'], sound: "sounds/lambo_aventador.mp3", specs: getSpecs("Petrol", "6498cc", "12", "770", "720 Nm", "Nat. Asp.", "7", "AWD", "5.5 km/l", "350 km/h", "2.8s", "1525 kg") },
+                { name: "Countach LPI 800", price: "$2,640,000", img: "https://www.pngplay.com/wp-content/uploads/13/Lamborghini-Countach-PNG-Photos.png", colors: ['#fff', '#000', '#d35400'], sound: "sounds/lambo_countach.mp3", specs: getSpecs("Hybrid", "6498cc", "12", "802", "720 Nm", "Nat. Asp.", "7", "AWD", "6.0 km/l", "355 km/h", "2.8s", "1595 kg") },
+                { name: "Sian FKP 37", price: "$3,600,000", img: "https://www.pngplay.com/wp-content/uploads/13/Lamborghini-Revuelto-PNG-Photos.png", colors: ['#2ecc71', '#000', '#d35400'], sound: "sounds/lambo_sian.mp3", specs: getSpecs("Hybrid", "6498cc", "12", "808", "720 Nm", "Nat. Asp.", "7", "AWD", "5.8 km/l", "350 km/h", "2.8s", "1595 kg") },
+                { name: "Veneno", price: "$4,000,000", img: "https://www.pngplay.com/wp-content/uploads/13/Lamborghini-Aventador-PNG-HD-Quality.png", colors: ['#7f8c8d', '#c0392b', '#000'], sound: "sounds/lambo_veneno.mp3", specs: getSpecs("Petrol", "6498cc", "12", "740", "690 Nm", "Nat. Asp.", "7", "AWD", "5.0 km/l", "355 km/h", "2.9s", "1450 kg") },
+                { name: "Centenario", price: "$1,900,000", img: "https://www.pngplay.com/wp-content/uploads/13/Lamborghini-Huracan-STO-PNG-HD-Quality.png", colors: ['#000', '#f1c40f', '#fff'], sound: "sounds/lambo_centenario.mp3", specs: getSpecs("Petrol", "6498cc", "12", "770", "690 Nm", "Nat. Asp.", "7", "AWD", "5.5 km/l", "350 km/h", "2.8s", "1520 kg") },
+                { name: "Diablo", price: "$300,000", img: "https://www.pngplay.com/wp-content/uploads/13/Lamborghini-Countach-PNG-Photos.png", colors: ['#f1c40f', '#000', '#fff'], sound: "sounds/lambo_diablo.mp3", specs: getSpecs("Petrol", "5707cc", "12", "492", "580 Nm", "Nat. Asp.", "5", "RWD", "4.5 km/l", "325 km/h", "4.5s", "1575 kg") },
+                { name: "Murcielago", price: "$350,000", img: "https://www.pngplay.com/wp-content/uploads/13/Lamborghini-Revuelto-PNG-Photos.png", colors: ['#e67e22', '#000', '#fff'], sound: "sounds/lambo_murcielago.mp3", specs: getSpecs("Petrol", "6496cc", "12", "640", "660 Nm", "Nat. Asp.", "6", "AWD", "5.0 km/l", "340 km/h", "3.4s", "1650 kg") }
+            ]},
+            { brand: "FERRARI", color: "#c0392b", models: [
+                { name: "SF90 Stradale", price: "$524,000", img: "https://www.pngmart.com/files/22/Ferrari-SF90-Stradale-PNG-Isolated-Transparent.png", colors: ['#c0392b', '#fff', '#000'], sound: "sounds/ferrari_sf90.mp3", specs: getSpecs("Hybrid", "3990cc", "8", "986", "800 Nm", "Twin-Turbo", "8", "AWD", "16.0 km/l", "340 km/h", "2.5s", "1570 kg") },
+                { name: "Roma", price: "$243,000", img: "https://www.pngplay.com/wp-content/uploads/13/Ferrari-Roma-PNG-Photos.png", colors: ['#7f8c8d', '#c0392b', '#000'], sound: "sounds/ferrari_roma.mp3", specs: getSpecs("Petrol", "3855cc", "8", "612", "760 Nm", "Twin-Turbo", "8", "RWD", "8.9 km/l", "320 km/h", "3.4s", "1570 kg") },
+                { name: "F8 Tributo", price: "$280,000", img: "https://www.pngplay.com/wp-content/uploads/13/Ferrari-F8-Tributo-PNG-HD-Quality.png", colors: ['#c0392b', '#3498db', '#fff'], sound: "sounds/ferrari_f8.mp3", specs: getSpecs("Petrol", "3902cc", "8", "710", "770 Nm", "Twin-Turbo", "7", "RWD", "8.0 km/l", "340 km/h", "2.9s", "1435 kg") },
+                { name: "296 GTB", price: "$322,000", img: "https://www.pngplay.com/wp-content/uploads/13/Ferrari-296-GTB-PNG-HD-Quality.png", colors: ['#f1c40f', '#c0392b', '#fff'], sound: "sounds/ferrari_296.mp3", specs: getSpecs("Hybrid", "2992cc", "6", "818", "740 Nm", "Twin-Turbo", "8", "RWD", "15.6 km/l", "330 km/h", "2.9s", "1470 kg") },
+                { name: "Purosangue", price: "$398,000", img: "https://www.pngplay.com/wp-content/uploads/13/Ferrari-Purosangue-PNG-Photos.png", colors: ['#000', '#c0392b', '#fff'], sound: "sounds/ferrari_purosangue.mp3", specs: getSpecs("Petrol", "6496cc", "12", "715", "716 Nm", "Nat. Asp.", "8", "AWD", "6.5 km/l", "310 km/h", "3.3s", "2033 kg") },
+                { name: "LaFerrari", price: "$1,400,000", img: "https://www.pngmart.com/files/22/Ferrari-SF90-Stradale-PNG-Isolated-Transparent.png", colors: ['#c0392b', '#000', '#f1c40f'], sound: "sounds/ferrari_laferrari.mp3", specs: getSpecs("Hybrid", "6262cc", "12", "950", "900 Nm", "Nat. Asp.", "7", "RWD", "7.0 km/l", "350 km/h", "2.4s", "1255 kg") },
+                { name: "812 Superfast", price: "$335,000", img: "https://www.pngplay.com/wp-content/uploads/13/Ferrari-Roma-PNG-Photos.png", colors: ['#7f8c8d', '#c0392b', '#fff'], sound: "sounds/ferrari_812.mp3", specs: getSpecs("Petrol", "6496cc", "12", "789", "718 Nm", "Nat. Asp.", "7", "RWD", "6.5 km/l", "340 km/h", "2.9s", "1525 kg") },
+                { name: "Daytona SP3", price: "$2,250,000", img: "https://www.pngplay.com/wp-content/uploads/13/Ferrari-296-GTB-PNG-HD-Quality.png", colors: ['#c0392b', '#fff', '#000'], sound: "sounds/ferrari_daytona.mp3", specs: getSpecs("Petrol", "6496cc", "12", "829", "697 Nm", "Nat. Asp.", "7", "RWD", "6.0 km/l", "340 km/h", "2.85s", "1485 kg") },
+                { name: "Monza SP1", price: "$1,800,000", img: "https://www.pngplay.com/wp-content/uploads/13/Ferrari-F8-Tributo-PNG-HD-Quality.png", colors: ['#000', '#c0392b', '#7f8c8d'], sound: "sounds/ferrari_monza.mp3", specs: getSpecs("Petrol", "6496cc", "12", "799", "719 Nm", "Nat. Asp.", "7", "RWD", "6.5 km/l", "300 km/h", "2.9s", "1500 kg") },
+                { name: "Portofino M", price: "$226,000", img: "https://www.pngplay.com/wp-content/uploads/13/Ferrari-Roma-PNG-Photos.png", colors: ['#3498db', '#c0392b', '#fff'], sound: "sounds/ferrari_portofino.mp3", specs: getSpecs("Petrol", "3855cc", "8", "612", "760 Nm", "Twin-Turbo", "8", "RWD", "9.5 km/l", "320 km/h", "3.45s", "1664 kg") }
+            ]},
+            { brand: "PORSCHE", color: "#27ae60", models: [
+                { name: "911 GT3 RS", price: "$223,800", img: "https://www.pngmart.com/files/22/Porsche-911-GT3-RS-PNG-Transparent.png", colors: ['#27ae60', '#fff', '#000'], sound: "sounds/porsche_911gt3rs.mp3", specs: getSpecs("Petrol", "3996cc", "6", "518", "465 Nm", "Nat. Asp.", "7", "RWD", "7.5 km/l", "296 km/h", "3.2s", "1450 kg") },
+                { name: "Taycan Turbo S", price: "$185,000", img: "https://www.pngplay.com/wp-content/uploads/13/Porsche-Taycan-PNG-Photos.png", colors: ['#3498db', '#fff', '#27ae60'], sound: "sounds/porsche_taycan.mp3", specs: getSpecs("Electric", "Electric", "0", "750", "1050 Nm", "N/A", "2", "AWD", "400 km Range", "260 km/h", "2.8s", "2295 kg") },
+                { name: "918 Spyder", price: "$845,000", img: "https://www.pngplay.com/wp-content/uploads/13/Porsche-718-Cayman-GT4-RS-PNG-Photos.png", colors: ['#7f8c8d', '#000', '#27ae60'], sound: "sounds/porsche_918.mp3", specs: getSpecs("Hybrid", "4593cc", "8", "887", "1280 Nm", "Nat. Asp.", "7", "AWD", "15.0 km/l", "345 km/h", "2.6s", "1634 kg") },
+                { name: "Carrera GT", price: "$440,000", img: "https://www.pngmart.com/files/22/Porsche-911-GT3-RS-PNG-Transparent.png", colors: ['#c0392b', '#fff', '#000'], sound: "sounds/porsche_carreragt.mp3", specs: getSpecs("Petrol", "5733cc", "10", "612", "590 Nm", "Nat. Asp.", "6", "RWD", "6.5 km/l", "330 km/h", "3.9s", "1380 kg") },
+                { name: "Panamera GTS", price: "$92,000", img: "https://www.pngplay.com/wp-content/uploads/13/Porsche-Panamera-PNG-HD-Quality.png", colors: ['#000', '#7f8c8d', '#27ae60'], sound: "sounds/porsche_panamera.mp3", specs: getSpecs("Petrol", "3996cc", "8", "473", "620 Nm", "Twin-Turbo", "8", "AWD", "8.5 km/l", "300 km/h", "3.9s", "2020 kg") },
+                { name: "Macan GTS", price: "$82,000", img: "https://www.pngplay.com/wp-content/uploads/13/Porsche-Macan-PNG-Photos.png", colors: ['#34495e', '#fff', '#27ae60'], sound: "sounds/porsche_macan.mp3", specs: getSpecs("Petrol", "2894cc", "6", "434", "550 Nm", "Twin-Turbo", "7", "AWD", "9.0 km/l", "272 km/h", "4.5s", "1960 kg") },
+                { name: "Cayenne Turbo GT", price: "$135,000", img: "https://www.pngplay.com/wp-content/uploads/13/Porsche-Panamera-PNG-HD-Quality.png", colors: ['#fff', '#000', '#c0392b'], sound: "sounds/porsche_cayenne.mp3", specs: getSpecs("Petrol", "3996cc", "8", "631", "850 Nm", "Twin-Turbo", "8", "AWD", "8.0 km/l", "300 km/h", "3.3s", "2220 kg") },
+                { name: "718 Cayman GT4", price: "$68,000", img: "https://www.pngplay.com/wp-content/uploads/13/Porsche-718-Cayman-GT4-RS-PNG-Photos.png", colors: ['#f1c40f', '#000', '#27ae60'], sound: "sounds/porsche_718.mp3", specs: getSpecs("Petrol", "3995cc", "6", "493", "450 Nm", "Nat. Asp.", "7", "RWD", "9.5 km/l", "315 km/h", "3.4s", "1415 kg") },
+                { name: "911 Turbo S", price: "$230,000", img: "https://www.pngmart.com/files/22/Porsche-911-GT3-RS-PNG-Transparent.png", colors: ['#3498db', '#000', '#fff'], sound: "sounds/porsche_911turbos.mp3", specs: getSpecs("Petrol", "3745cc", "6", "640", "800 Nm", "Twin-Turbo", "8", "AWD", "8.8 km/l", "330 km/h", "2.7s", "1640 kg") },
+                { name: "911 Dakar", price: "$222,000", img: "https://www.pngplay.com/wp-content/uploads/13/Porsche-718-Cayman-GT4-RS-PNG-Photos.png", colors: ['#2ecc71', '#000', '#fff'], sound: "sounds/porsche_911dakar.mp3", specs: getSpecs("Petrol", "2981cc", "6", "473", "570 Nm", "Twin-Turbo", "8", "AWD", "9.0 km/l", "240 km/h", "3.4s", "1605 kg") }
+            ]},
+            { brand: "BUGATTI", color: "#2980b9", models: [
+                { name: "Chiron Super Sport", price: "$3,800,000", img: "https://www.pngmart.com/files/22/Bugatti-Chiron-PNG-Transparent.png", colors: ['#2980b9', '#000', '#fff'], sound: "sounds/bugatti_chiron.mp3", specs: getSpecs("Petrol", "7993cc", "16", "1578", "1600 Nm", "Quad-Turbo", "7", "AWD", "4.5 km/l", "440 km/h", "2.4s", "1995 kg") },
+                { name: "Divo", price: "$5,800,000", img: "https://www.pngplay.com/wp-content/uploads/13/Bugatti-Divo-PNG-Photos.png", colors: ['#7f8c8d', '#2980b9', '#000'], sound: "sounds/bugatti_divo.mp3", specs: getSpecs("Petrol", "7993cc", "16", "1479", "1600 Nm", "Quad-Turbo", "7", "AWD", "4.2 km/l", "380 km/h", "2.4s", "1961 kg") },
+                { name: "Veyron Super Sport", price: "$2,000,000", img: "https://www.pngmart.com/files/22/Bugatti-Chiron-PNG-Transparent.png", colors: ['#000', '#c0392b', '#2980b9'], sound: "sounds/bugatti_veyron.mp3", specs: getSpecs("Petrol", "7993cc", "16", "1184", "1500 Nm", "Quad-Turbo", "7", "AWD", "4.0 km/l", "431 km/h", "2.5s", "1888 kg") },
+                { name: "Centodieci", price: "$9,000,000", img: "https://www.pngplay.com/wp-content/uploads/13/Bugatti-Centodieci-PNG-HD-Quality.png", colors: ['#fff', '#000', '#2980b9'], sound: "sounds/bugatti_centodieci.mp3", specs: getSpecs("Petrol", "7993cc", "16", "1578", "1600 Nm", "Quad-Turbo", "7", "AWD", "4.5 km/l", "380 km/h", "2.4s", "1976 kg") },
+                { name: "W16 Mistral", price: "$5,000,000", img: "https://www.pngplay.com/wp-content/uploads/13/Bugatti-W16-Mistral-PNG-Photos.png", colors: ['#f1c40f', '#000', '#2980b9'], sound: "sounds/bugatti_mistral.mp3", specs: getSpecs("Petrol", "7993cc", "16", "1578", "1600 Nm", "Quad-Turbo", "7", "AWD", "4.5 km/l", "420 km/h", "2.4s", "1960 kg") },
+                { name: "Bolide", price: "$4,700,000", img: "https://www.pngplay.com/wp-content/uploads/13/Bugatti-Divo-PNG-Photos.png", colors: ['#3498db', '#000', '#fff'], sound: "sounds/bugatti_bolide.mp3", specs: getSpecs("Petrol", "7993cc", "16", "1824", "1850 Nm", "Quad-Turbo", "7", "AWD", "3.5 km/l", "500+ km/h", "2.1s", "1240 kg") },
+                { name: "La Voiture Noire", price: "$18,700,000", img: "https://www.pngmart.com/files/22/Bugatti-Chiron-PNG-Transparent.png", colors: ['#000', '#2980b9', '#333'], sound: "sounds/bugatti_lavoiture.mp3", specs: getSpecs("Petrol", "7993cc", "16", "1479", "1600 Nm", "Quad-Turbo", "7", "AWD", "4.0 km/l", "420 km/h", "2.4s", "1995 kg") },
+                { name: "Tourbillon", price: "$4,100,000", img: "https://www.pngplay.com/wp-content/uploads/13/Bugatti-Centodieci-PNG-HD-Quality.png", colors: ['#34495e', '#fff', '#2980b9'], sound: "sounds/bugatti_tourbillon.mp3", specs: getSpecs("Hybrid", "8300cc", "16", "1775", "900 Nm", "Nat. Asp.", "8", "AWD", "8.0 km/l", "445 km/h", "2.0s", "1995 kg") },
+                { name: "EB110 Super Sport", price: "$1,000,000", img: "https://www.pngplay.com/wp-content/uploads/13/Bugatti-W16-Mistral-PNG-Photos.png", colors: ['#3498db', '#fff', '#000'], sound: "sounds/bugatti_eb110.mp3", specs: getSpecs("Petrol", "3500cc", "12", "603", "650 Nm", "Quad-Turbo", "6", "AWD", "5.5 km/l", "348 km/h", "3.2s", "1618 kg") },
+                { name: "Chiron Pur Sport", price: "$3,600,000", img: "https://www.pngmart.com/files/22/Bugatti-Chiron-PNG-Transparent.png", colors: ['#e67e22', '#000', '#fff'], sound: "sounds/bugatti_pursport.mp3", specs: getSpecs("Petrol", "7993cc", "16", "1479", "1600 Nm", "Quad-Turbo", "7", "AWD", "4.0 km/l", "350 km/h", "2.3s", "1945 kg") }
+            ]}
+        ];
+
+        let stashedCar = null;
+        let selectedOrderCar = null; 
+        const container = document.getElementById('v-slider');
+        const dotsBox = document.getElementById('dots');
+        let currentBrandIndex = 0;
+        let engineAudio = document.getElementById('dynamic-engine');
+
+        // Dynamic HTML Generation for the 50 Car slider
+        carData.forEach((brand, bIdx) => {
+            const dot = document.createElement('div');
+            dot.className = `dot ${bIdx === 0 ? 'active' : ''}`;
+            dot.onclick = () => container.scrollTo({top: container.clientHeight * bIdx, behavior: 'smooth'});
+            dotsBox.appendChild(dot);
+
+            const brandGroup = document.createElement('div');
+            brandGroup.className = 'brand-container';
+            
+            brand.models.forEach((m, mIdx) => {
+                const slide = document.createElement('div');
+                slide.className = 'model-slide';
+                slide.style.background = brand.color;
+                
+                slide.innerHTML = `
+                    <div class="top-info" style="display:flex; justify-content:space-between; padding:40px 80px; color:white; z-index:10; position:relative;">
+                        <div style="font-weight:900; letter-spacing:2px; font-size:0.8rem;">LUXE DRIVE</div>
+                        <div style="opacity:0.7; font-size:0.7rem;">0${bIdx+1} / 0${carData.length}</div>
+                    </div>
+                    <div class="bg-text">${brand.brand}</div>
+                    <div class="main-display">
+                        <img src="${m.img}" class="car-img">
+                    </div>
+                    
+                    <div class="glass-footer">
+                        <div class="car-identity">
+                            <h2>${m.name}</h2>
+                            <div class="config-dots">${m.colors.map(c => `<div class="color-dot" style="background:${c}" onclick="changeBg('${c}', this)"></div>`).join('')}</div>
+                        </div>
+
+                        <div class="spec-card">
+                            <div class="specs-data">
+                                <div><label>Engine</label><span>${m.specs.engine.cap}</span></div>
+                                <div><label>Top Speed</label><span>${m.specs.top}</span></div>
+                                <div><label>Torque</label><span>${m.specs.engine.torque}</span></div>
+                                <div><label>Horsepower</label><span>${m.specs.hp} HP</span></div>
+                            </div>
+                            <div style="display:flex; gap: 10px;">
+                                <button class="btn-details" style="background:#222; border: 1px solid #444;" onclick="triggerCompare(${bIdx}, ${mIdx})">COMPARE</button>
+                                <button class="btn-details" onclick="openPopup(${bIdx}, ${mIdx})">DETAILS</button>
+                            </div>
+                        </div>
+
+                        <div style="display:flex; align-items:center; gap:15px;">
+                            <div class="btn-start-engine" 
+                                 onmousedown="startEngine(this, '${m.sound}')" 
+                                 onmouseup="stopEngine(this)" 
+                                 onmouseleave="stopEngine(this)"
+                                 ontouchstart="startEngine(this, '${m.sound}')" 
+                                 ontouchend="stopEngine(this)">
+                                <img src="https://cdn-icons-png.flaticon.com/512/2800/2800140.png" alt="Start Engine">
+                                <span>HOLD</span>
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:8px; width: 120px;">
+                                <button class="btn-action" style="background:transparent; border:1px solid #fff; color:#fff; width:100%;" 
+                                    onclick="window.location.href='customize_2.html?name=${encodeURIComponent(m.name)}&img=${encodeURIComponent(m.img)}'">CUSTOMIZE</button>
+                                <a href="order_7.html?name=${encodeURIComponent(m.name)}" class="btn-action" style="text-decoration:none; text-align:center; width:100%; display:block;">BUY</a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                brandGroup.appendChild(slide);
+            });
+            container.appendChild(brandGroup);
+        });
+
+        function changeBg(color, el) { el.closest('.model-slide').style.background = color; }
+        
+        // Advanced Audio Engine Controller
+        function startEngine(btn, soundUrl) {
+            const img = btn.closest('.model-slide').querySelector('.car-img');
+            img.classList.add('shaking');
+            
+            // Standard fallback sound if the specific local file isn't found
+            const fallbackSound = "https://assets.mixkit.co/active_storage/sfx/2650/2650-preview.mp3";
+            
+            if (engineAudio.src !== soundUrl) {
+                engineAudio.src = soundUrl;
+            }
+            engineAudio.currentTime = 0;
+            
+            let playPromise = engineAudio.play();
+            
+            if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                    console.log("Original audio file not found. Playing generic fallback.");
+                    engineAudio.src = fallbackSound;
+                    engineAudio.play();
+                    showToast(`Missing original file: ${soundUrl}. Playing fallback.`);
+                });
+            }
+        }
+
+        function stopEngine(btn) {
+            const img = btn.closest('.model-slide').querySelector('.car-img');
+            img.classList.remove('shaking');
+            engineAudio.pause();
+        }
+
+        function createSpecRow(label, val) { return `<div class="spec-row"><span>${label}</span><span>${val}</span></div>`; }
+
+        function triggerCompare(bIdx, mIdx) {
+            const m = carData[bIdx].models[mIdx];
+            if (!stashedCar) {
+                stashedCar = m;
+                showToast(`Ready to compare ${m.name}. Select another car to compare.`);
+            } else if (stashedCar.name !== m.name) {
+                openComparePopup(stashedCar, m);
+            } else {
+                showToast(`${m.name} is already selected for comparison.`);
+            }
+        }
+
+        function openPopup(bIdx, mIdx) {
+            const m = carData[bIdx].models[mIdx];
+            const modal = document.getElementById('details-popup');
+            const card = document.getElementById('pop-card');
+            selectedOrderCar = m; 
+            document.getElementById('pop-price').innerText = m.price;
+            card.classList.remove('compare-mode');
+            document.getElementById('pop-img').src = m.img;
+            document.getElementById('pop-name').innerText = m.name;
+            const s = m.specs;
+            document.getElementById('pop-specs').innerHTML = `
+                <div class="spec-section"><h3>⚙️ Engine Specifications</h3>${createSpecRow("Engine Type", s.engine.type)}${createSpecRow("Capacity", s.engine.cap)}${createSpecRow("Max Power", s.engine.power)}${createSpecRow("Max Torque", s.engine.torque)}</div>
+                <div class="spec-section"><h3>🔄 Drivetrain</h3>${createSpecRow("Transmission", s.trans.type)}${createSpecRow("Drive Type", s.trans.drive)}</div>
+                <div class="spec-section"><h3>⛽ Mileage & Fuel</h3>${createSpecRow("Mileage", s.fuel.mileage)}${createSpecRow("Fuel Tank", s.fuel.tank)}</div>
+            `;
+            modal.style.display = 'flex';
+        }
+
+        function openComparePopup(c1, c2) {
+            const modal = document.getElementById('details-popup');
+            const card = document.getElementById('pop-card');
+            card.classList.add('compare-mode');
+            document.getElementById('pop-name').innerText = "COMPARISON MODE";
+            window.compareCar1 = c1; window.compareCar2 = c2;
+            renderCompare(c1, c2);
+            toggleCheckbox(1);
+            modal.style.display = 'flex';
+            stashedCar = null;
+        }
+
+        function renderCompare(c1, c2) {
+            const createCol = (car, num) => {
+                const s = car.specs;
+                return `
+                <div class="compare-glass-card" id="comp-card-${num}">
+                    <h2>${car.name}</h2><p class="comp-price">${car.price}</p><img src="${car.img}">
+                    <div class="spec-section"><h3>⚙️ Performance</h3>${createSpecRow("Type", s.engine.type)}${createSpecRow("HP", car.specs.hp)}${createSpecRow("Top Speed", car.specs.top)}</div>
+                    <div class="spec-section"><h3>🔄 Transmission</h3>${createSpecRow("Trans", s.trans.type)}${createSpecRow("Drive", s.trans.drive)}</div>
+                    <div class="order-checkbox-wrapper">
+                        <div class="custom-check-container" id="check-box-${num}" onclick="toggleCheckbox(${num})"><div class="check-box"></div><span class="check-label">Select For Order</span></div>
+                        <button class="btn-comp-customize" onclick="window.location.href='customize_2.html?name=${encodeURIComponent(car.name)}&img=${encodeURIComponent(car.img)}'">Customize</button>
+                    </div>
+                </div>`;
+            };
+            document.getElementById('compare-grid').innerHTML = createCol(c1, 1) + createCol(c2, 2);
+        }
+
+        function toggleCheckbox(num) {
+            selectedOrderCar = num === 1 ? window.compareCar1 : window.compareCar2;
+            document.getElementById('pop-price').innerText = selectedOrderCar.price;
+            for(let i=1; i<=2; i++) {
+                document.getElementById(`comp-card-${i}`).classList.toggle('selected', i === num);
+                document.getElementById(`check-box-${i}`).classList.toggle('checked', i === num);
+            }
+        }
+
+        function placeOrder() { if(selectedOrderCar) window.location.href = `order_7.html?name=${encodeURIComponent(selectedOrderCar.name)}`; }
+        
+        function showToast(msg) { 
+            const t = document.createElement('div'); 
+            t.style = "position:fixed; top:40px; right: 40px; background:#e67e22; color:white; padding:15px 30px; border-radius:30px; font-weight:900; font-size:0.7rem; z-index:30000; box-shadow:0 10px 30px rgba(0,0,0,0.5);"; 
+            t.innerText = "PROTOCOL: " + msg.toUpperCase(); 
+            document.body.appendChild(t); 
+            setTimeout(() => t.remove(), 3000); 
+        }
+
+        function closePopup() { document.getElementById('details-popup').style.display = 'none'; }
+
+        // Slide Intersect Observer for dots and sound
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    document.querySelectorAll('.model-slide').forEach(s => s.classList.remove('active'));
+                    entry.target.classList.add('active');
+                    const newIdx = Array.from(container.children).indexOf(entry.target.parentElement);
+                    if (newIdx !== currentBrandIndex) { currentBrandIndex = newIdx; document.getElementById('click-sound').play(); }
+                    document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === currentBrandIndex));
+                }
+            });
+        }, { threshold: 0.6 });
+        document.querySelectorAll('.model-slide').forEach(s => observer.observe(s));
+    </script>
+</body>
+</html>

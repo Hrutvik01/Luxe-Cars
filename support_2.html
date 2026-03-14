@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Support | Luxe Drive</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        /* 1. CORE INTERFACE */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { display: none; }
+        body { background: #000; height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+        
+        .viewport-frame {
+            width: 96vw; height: 92vh; background: #111; border-radius: 60px;
+            border: 8px solid rgba(255, 255, 255, 0.1); position: relative;
+            display: flex; flex-direction: column; overflow-y: scroll; scrollbar-width: none;
+        }
+
+        /* 2. NAVIGATION */
+        .btn-back {
+            position: absolute; top: 40px; left: 40px;
+            background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2); color: white;
+            padding: 12px 25px; border-radius: 30px; text-decoration: none;
+            font-size: 0.7rem; font-weight: 700; letter-spacing: 1px;
+            transition: 0.3s; z-index: 100;
+        }
+        .btn-back:hover { background: white; color: black; transform: translateX(-5px); }
+
+        /* 3. CONTENT LAYOUT */
+        .content-wrapper {
+            padding: 100px 80px; color: white;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 60px; z-index: 2;
+        }
+
+        .bg-text {
+            position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%);
+            width: 95%; text-align: center; font-size: 18vw; font-weight: 900;
+            color: rgba(255, 255, 255, 0.03); text-transform: uppercase; pointer-events: none; z-index: 1;
+        }
+
+        /* 4. GLASSMORPHISM */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 40px; padding: 40px;
+        }
+
+        h1 { font-size: 3rem; font-weight: 900; margin-bottom: 20px; }
+        h2 { font-size: 1.2rem; font-weight: 700; margin-bottom: 15px; letter-spacing: 1px; }
+        p { opacity: 0.6; line-height: 1.6; margin-bottom: 30px; }
+
+        /* 5. FORM */
+        .support-form input, .support-form textarea {
+            width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 15px; padding: 15px; color: white; margin-bottom: 15px; font-size: 0.9rem; outline: none;
+        }
+        .btn-submit {
+            background: white; color: black; border: none; padding: 15px 30px;
+            border-radius: 30px; font-weight: 800; cursor: pointer; transition: 0.3s; width: 100%;
+        }
+        .btn-submit:hover { transform: scale(1.02); background: #eee; }
+
+        /* 6. POPUP STYLING */
+        .popup-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(15px);
+            display: none; justify-content: center; align-items: center; z-index: 2000;
+        }
+        .popup-content {
+            background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 40px; padding: 50px 40px; text-align: center; max-width: 400px; color: white;
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes popIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+        .popup-icon { width: 60px; height: 60px; background: #2ecc71; color: #000; font-size: 2rem; 
+                      line-height: 60px; border-radius: 50%; margin: 0 auto 20px; font-weight: 900; }
+
+        /* OTHER */
+        .status-badge { display: inline-flex; align-items: center; gap: 8px; font-size: 0.7rem; font-weight: 700; color: #2ecc71; margin-bottom: 10px; }
+        .pulse { width: 8px; height: 8px; background: #2ecc71; border-radius: 50%; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 0.4; } 100% { opacity: 1; } }
+        .faq-item { margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; }
+        .faq-item h3 { font-size: 0.9rem; margin-bottom: 5px; color: #e67e22; }
+    </style>
+</head>
+<body>
+
+    <div class="viewport-frame">
+        <a href="pro_11.html" class="btn-back">← BACK TO GALLERY</a>
+        <div class="bg-text">ASSIST</div>
+
+        <div class="content-wrapper">
+            <div>
+                <div class="status-badge"><div class="pulse"></div> CONCIERGE ONLINE</div>
+                <h1>CLIENT SERVICES</h1>
+                <p>Our dedicated concierge team is available 24/7 to handle acquisitions, shipping, and bespoke configurations.</p>
+                
+                <div class="glass-card">
+                    <form class="support-form" id="contactForm">
+                        <input type="text" id="name" placeholder="Full Name" required>
+                        <input type="email" id="email" placeholder="Email Address" required>
+                        <textarea id="message" rows="4" placeholder="How can we assist you?" required></textarea>
+                        <button type="submit" class="btn-submit">SEND INQUIRY</button>
+                    </form>
+                </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 30px;">
+                <div class="glass-card">
+                    <h2>FREQUENTLY ASKED</h2>
+                    <div class="faq-item">
+                        <h3>Global Delivery</h3>
+                        <p>We provide secure, enclosed transport to over 140 countries.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h3>Bespoke Requests</h3>
+                        <p>Custom skins can be requested via the Bespoke Studio.</p>
+                    </div>
+                </div>
+
+                <div class="glass-card" style="background: rgba(230, 126, 34, 0.1);">
+                    <h2>DIRECT CONTACT</h2>
+                    <p style="margin-bottom: 10px;">Phone: +91 9510275215</p>
+                    <p>Email: concierge@luxedrive.global</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="customPopup" class="popup-overlay">
+            <div class="popup-content">
+                <div class="popup-icon">✓</div>
+                <h2 style="color: #2ecc71; margin-bottom: 10px;">SUCCESS</h2>
+                <p style="margin-bottom: 25px;">Your inquiry has been sent to the email and WhatsApp of our support team.</p>
+                <button onclick="closePopup()" class="btn-submit">CONTINUE</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const contactForm = document.getElementById('contactForm');
+        const popup = document.getElementById('customPopup');
+
+        contactForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const message = document.getElementById('message').value;
+
+            // WhatsApp formatting
+            const phone = "919510275215";
+            const text = `*Luxe Drive Inquiry*\n*Name:* ${name}\n*Email:* ${email}\n*Message:* ${message}`;
+            const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
+
+            // Email formatting
+            const mailtoUrl = `mailto:hrutvikp29@gmail.com?subject=Inquiry: ${encodeURIComponent(name)}&body=${encodeURIComponent(text)}`;
+
+            // 1. Open WhatsApp
+            window.open(whatsappUrl, '_blank');
+
+            // 2. Trigger Email client
+            setTimeout(() => {
+                window.location.href = mailtoUrl;
+            }, 600);
+
+            // 3. Show Popup
+            popup.style.display = 'flex';
+        });
+
+        function closePopup() {
+            popup.style.display = 'none';
+            contactForm.reset();
+        }
+    </script>
+</body>
+</html>

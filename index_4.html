@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LUXE | Virtual Showroom</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;500;700&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/studio-freight/lenis@1.0.19/bundled/lenis.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Rajdhani', 'sans-serif'],
+            display: ['Syncopate', 'sans-serif'],
+          },
+          colors: {
+            brand: { dark: '#050505', neon: '#ff2a2a', silver: '#e0e0e0', glass: 'rgba(20,20,20,0.6)' }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    :root { --neon:#ff2a2a; --bg:#020202; --ease:cubic-bezier(0.16,1,0.3,1); }
+
+    body, html { margin:0; padding:0; background-color:var(--bg); color:#fff; overflow-x:hidden; }
+    body { cursor: none; }
+    ::selection { background: var(--neon); color: #000; }
+
+    /* ✅ SHOW + THEME SCROLLBAR (you previously hid it) */
+    html { scrollbar-width: thin; scrollbar-color: rgba(255,42,42,0.85) rgba(255,255,255,0.06); }
+    ::-webkit-scrollbar { width: 12px; }
+    ::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); border-left: 1px solid rgba(255,255,255,0.06); }
+    ::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, rgba(255,42,42,0.95), rgba(255,42,42,0.55));
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 999px;
+      box-shadow: 0 0 14px rgba(255,42,42,0.18);
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(180deg, rgba(255,42,42,1), rgba(255,255,255,0.35));
+      box-shadow: 0 0 18px rgba(255,42,42,0.28);
+    }
+
+    /* Film Grain Overlay */
+    .noise {
+      position: fixed; inset: 0; z-index: 9999; pointer-events: none; opacity: 0.04;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+      mix-blend-mode: overlay;
+    }
+
+    /* Custom Cursor */
+    .cursor-dot { position: fixed; width: 6px; height: 6px; background: var(--neon); border-radius: 50%; pointer-events: none; z-index: 10000; transform: translate(-50%, -50%); transition: width 0.2s, height 0.2s; box-shadow: 0 0 10px var(--neon); }
+    .cursor-ring { position: fixed; width: 40px; height: 40px; border: 1px solid rgba(255, 42, 42, 0.4); border-radius: 50%; pointer-events: none; z-index: 9999; transform: translate(-50%, -50%); transition: 0.15s ease-out; }
+    .hovered .cursor-dot { width: 12px; height: 12px; background: #fff; box-shadow: 0 0 20px #fff; }
+    .hovered .cursor-ring { width: 60px; height: 60px; border-color: #fff; background: rgba(255,255,255,0.05); }
+
+    /* Glassmorphism */
+    .glass-panel { background: rgba(10, 10, 10, 0.5); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.05); border-top: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 30px 60px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06); transform-style: preserve-3d; }
+    .hud-text { font-family: 'Rajdhani', sans-serif; font-weight: 700; letter-spacing: 4px; text-transform: uppercase; font-size: 0.7rem; color: #888; }
+
+    /* Spotlight */
+    .spotlight { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80vw; height: 80vw; background: radial-gradient(circle, rgba(255,42,42,0.15) 0%, transparent 60%); z-index: -1; filter: blur(50px); pointer-events: none; }
+
+    /* Gauges */
+    .gauge-circle { stroke-dasharray: 283; stroke-dashoffset: 283; transition: stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1); transform: rotate(-90deg); transform-origin: 50% 50%; }
+    .visible .gauge-circle { stroke-dashoffset: 0; }
+
+    /* Range Slider */
+    input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 20px; width: 4px; background: var(--neon); cursor: pointer; box-shadow: 0 0 10px var(--neon); }
+    input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 2px; cursor: pointer; background: #333; }
+
+    /* Loader */
+    #loader { position: fixed; inset: 0; background: #000; z-index: 99999; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 24px; }
+    .engine-start-btn { width: 120px; height: 120px; border: 1px solid #333; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; transition: 0.4s var(--ease); }
+    .engine-start-btn:hover { border-color: var(--neon); box-shadow: 0 0 30px rgba(255, 42, 42, 0.3) inset, 0 0 30px rgba(255, 42, 42, 0.2); }
+    .engine-start-btn::after { content: ''; position: absolute; width: calc(100% + 20px); height: calc(100% + 20px); border: 1px solid transparent; border-top-color: var(--neon); border-radius: 50%; animation: spin 2s linear infinite; opacity: 0; transition: 0.3s; }
+    .engine-start-btn:hover::after { opacity: 1; }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+
+    /* Utility */
+    .clip-text { clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%); }
+    .clip-text span { display: block; transform: translateY(100%); }
+
+    /* ✅ Overlays (Specs + Test Drive) */
+    .overlay-wrap{
+      position: fixed; inset: 0; z-index: 99998;
+      display: none; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.72);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      padding: 18px;
+    }
+    .overlay-wrap.show{ display:flex; }
+    .overlay-panel{
+      width: min(980px, 96vw);
+      max-height: 86vh;
+      overflow: auto;
+      border-radius: 28px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: linear-gradient(135deg, rgba(10,10,10,0.82), rgba(5,5,5,0.92));
+      box-shadow: 0 60px 120px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+    .close-btn{
+      width: 42px; height: 42px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.04);
+      display:flex; align-items:center; justify-content:center;
+      transition: .25s var(--ease);
+    }
+    .close-btn:hover{ background: rgba(255,42,42,0.12); border-color: rgba(255,42,42,0.25); }
+
+    .field{
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(0,0,0,0.35);
+      padding: 12px 12px;
+      color:#fff;
+      outline:none;
+      transition: .25s var(--ease);
+    }
+    .field:focus{
+      border-color: rgba(255,42,42,0.35);
+      box-shadow: 0 0 0 4px rgba(255,42,42,0.10);
+    }
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.04);
+      font-size: 12px;
+      color: rgba(255,255,255,0.85);
+    }
+
+    /* ✅ Magnetic buttons */
+    .magnetic{
+      position: relative;
+      will-change: transform;
+      transition: transform .25s var(--ease);
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      * { animation:none !important; transition:none !important; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="noise"></div>
+  <div class="cursor-dot"></div>
+  <div class="cursor-ring"></div>
+
+  <audio id="engine-sound" preload="none" src="https://assets.mixkit.co/active_storage/sfx/2652/2652-preview.mp3"></audio>
+  <audio id="hover-sound" preload="none" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"></audio>
+
+  <div id="loader">
+    <div class="hud-text mb-8 tracking-[10px] text-brand-silver">SYSTEM STANDBY</div>
+    <button class="engine-start-btn interactive magnetic" id="init-btn" type="button">
+      <span class="font-display font-bold text-sm tracking-widest text-brand-neon">IGNITE</span>
+    </button>
+  </div>
+
+  <nav class="fixed top-0 w-full p-8 flex justify-between items-center z-50 mix-blend-difference pointer-events-none">
+    <div class="font-display font-bold text-2xl tracking-[5px] text-white">LUXE<span class="text-brand-neon">.</span></div>
+    <div class="hud-text flex gap-8">
+      <span>VOL: 22.4L</span>
+      <span>ALT: 45M</span>
+      <span id="nav-time">00:00:00</span>
+    </div>
+  </nav>
+
+  <!-- ✅ VIN / SPEC SHEET OVERLAY -->
+  <div id="specOverlay" class="overlay-wrap" role="dialog" aria-modal="true" aria-label="Vehicle spec sheet">
+    <div class="overlay-panel">
+      <div class="p-6 md:p-8 border-b border-white/10 flex items-start justify-between gap-4">
+        <div>
+          <div class="hud-text text-brand-neon mb-2">VEHICLE DOSSIER</div>
+          <h3 id="specTitle" class="font-display font-bold text-2xl md:text-3xl tracking-widest">—</h3>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <span class="pill">VIN: <b id="specVIN" class="font-sans tracking-widest">—</b></span>
+            <span class="pill">Year: <b id="specYear" class="font-sans tracking-widest">—</b></span>
+            <span class="pill">Stock: <b id="specStock" class="font-sans tracking-widest">—</b></span>
+          </div>
+        </div>
+        <button class="close-btn interactive magnetic" type="button" data-close="specOverlay" aria-label="Close">✕</button>
+      </div>
+
+      <div class="p-6 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="glass-panel rounded-3xl p-6">
+          <div class="hud-text mb-4">PERFORMANCE</div>
+          <div class="grid grid-cols-2 gap-4 text-sm font-sans tracking-wider">
+            <div class="p-4 rounded-2xl bg-white/5 border border-white/10">
+              <div class="text-gray-400 text-xs tracking-[3px] uppercase">Power</div>
+              <div id="specPower" class="text-xl font-bold">—</div>
+            </div>
+            <div class="p-4 rounded-2xl bg-white/5 border border-white/10">
+              <div class="text-gray-400 text-xs tracking-[3px] uppercase">0-100</div>
+              <div id="specZero" class="text-xl font-bold">—</div>
+            </div>
+            <div class="p-4 rounded-2xl bg-white/5 border border-white/10">
+              <div class="text-gray-400 text-xs tracking-[3px] uppercase">Top Speed</div>
+              <div id="specTop" class="text-xl font-bold">—</div>
+            </div>
+            <div class="p-4 rounded-2xl bg-white/5 border border-white/10">
+              <div class="text-gray-400 text-xs tracking-[3px] uppercase">Drivetrain</div>
+              <div id="specDrive" class="text-xl font-bold">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-panel rounded-3xl p-6">
+          <div class="hud-text mb-4">CONFIGURATION</div>
+          <div class="space-y-3 text-sm font-sans tracking-wider">
+            <div class="flex justify-between border-b border-white/10 pb-3"><span class="text-gray-400">Transmission</span><b id="specTrans">—</b></div>
+            <div class="flex justify-between border-b border-white/10 pb-3"><span class="text-gray-400">Exterior</span><b id="specExt">—</b></div>
+            <div class="flex justify-between border-b border-white/10 pb-3"><span class="text-gray-400">Interior</span><b id="specInt">—</b></div>
+            <div class="flex justify-between"><span class="text-gray-400">Mileage</span><b id="specMiles">—</b></div>
+          </div>
+
+          <div class="mt-6 flex gap-3">
+            <button id="specTestDriveBtn" class="flex-1 bg-white text-black py-3 rounded-xl font-bold font-sans tracking-[2px] uppercase hover:bg-brand-neon hover:text-white transition-colors interactive magnetic" type="button">
+              Book Test Drive
+            </button>
+            <a id="specWhatsBtn" class="flex-1 border border-white/20 py-3 rounded-xl font-bold font-sans tracking-[2px] uppercase hover:bg-white hover:text-black transition-colors interactive magnetic text-center"
+               href="#" target="_blank" rel="noopener">
+              WhatsApp
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ✅ TEST DRIVE MODAL (WhatsApp lead) -->
+  <div id="testDriveModal" class="overlay-wrap" role="dialog" aria-modal="true" aria-label="Book a test drive">
+    <div class="overlay-panel">
+      <div class="p-6 md:p-8 border-b border-white/10 flex items-start justify-between gap-4">
+        <div>
+          <div class="hud-text text-brand-neon mb-2">MODULE 01</div>
+          <h3 class="font-display font-bold text-2xl md:text-3xl tracking-widest">TEST DRIVE REQUEST</h3>
+          <p class="text-gray-400 font-sans mt-2">Pick date & time, choose location, and send instantly on WhatsApp.</p>
+        </div>
+        <button class="close-btn interactive magnetic" type="button" data-close="testDriveModal" aria-label="Close">✕</button>
+      </div>
+
+      <form id="testDriveForm" class="p-6 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div class="md:col-span-2 glass-panel rounded-3xl p-6">
+          <div class="hud-text mb-2">SELECTED VEHICLE</div>
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div class="font-display font-bold tracking-widest text-xl" id="tdCarName">—</div>
+            <div class="flex flex-wrap gap-2">
+              <span class="pill">VIN: <b id="tdVIN" class="font-sans tracking-widest">—</b></span>
+              <span class="pill">Price: <b id="tdPrice" class="font-sans tracking-widest">—</b></span>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label class="hud-text block mb-2">Full Name</label>
+          <input class="field" id="tdName" type="text" placeholder="Your name" required />
+        </div>
+        <div>
+          <label class="hud-text block mb-2">Phone</label>
+          <input class="field" id="tdPhone" type="tel" placeholder="+91 9XXXXXXXXX" required />
+        </div>
+        <div>
+          <label class="hud-text block mb-2">Preferred Date</label>
+          <input class="field" id="tdDate" type="date" required />
+        </div>
+        <div>
+          <label class="hud-text block mb-2">Preferred Time</label>
+          <input class="field" id="tdTime" type="time" required />
+        </div>
+
+        <div class="md:col-span-2">
+          <label class="hud-text block mb-2">Location</label>
+          <select class="field" id="tdLocation" required>
+            <option value="" selected disabled>Select location</option>
+            <option value="Showroom">Showroom (LUXE HQ)</option>
+            <option value="Home Visit">Home Visit (within city)</option>
+            <option value="Custom Spot">Custom Spot (send address)</option>
+          </select>
+        </div>
+
+        <div class="md:col-span-2">
+          <label class="hud-text block mb-2">Notes</label>
+          <textarea class="field" id="tdNotes" rows="3" placeholder="Any preferences, address, questions…"></textarea>
+        </div>
+
+        <div class="md:col-span-2 flex flex-col md:flex-row gap-3">
+          <a id="tdWhatsApp" class="flex-1 bg-brand-neon text-white py-4 rounded-xl font-bold font-sans tracking-[3px] uppercase hover:bg-white hover:text-black transition-colors interactive magnetic text-center"
+             href="#" target="_blank" rel="noopener">
+            Send on WhatsApp
+          </a>
+          <button class="flex-1 border border-white/20 py-4 rounded-xl font-bold font-sans tracking-[3px] uppercase hover:bg-white hover:text-black transition-colors interactive magnetic"
+                  type="button" data-close="testDriveModal">
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <main id="smooth-wrapper">
+    <div id="smooth-content">
+
+      <section class="relative h-[200vh]" id="hero-section">
+        <div class="sticky top-0 h-screen w-full flex items-center justify-center overflow-hidden bg-[#050505]" id="hero-pin">
+          <div class="spotlight" id="hero-light"></div>
+
+          <div class="absolute left-10 top-1/3 hud-text opacity-0" id="spec-1">
+            <div class="text-brand-neon mb-1">[01] AERODYNAMICS</div>
+            <div class="text-2xl text-white font-sans">CD 0.24</div>
+          </div>
+          <div class="absolute right-10 top-1/3 hud-text text-right opacity-0" id="spec-2">
+            <div class="text-brand-neon mb-1">[02] POWERTRAIN</div>
+            <div class="text-2xl text-white font-sans">1001 HP</div>
+          </div>
+
+          <div class="relative w-[90vw] max-w-[1200px] h-[60vh] flex items-center justify-center perspective-[1000px]" id="car-container">
+            <img src="https://freepngimg.com/thumb/mclaren/23243-mclaren-p1-transparent-image.png"
+                 alt="Hypercar"
+                 class="w-full h-auto object-contain drop-shadow-[0_50px_50px_rgba(0,0,0,0.9)] z-10"
+                 id="hero-car">
+
+            <div class="absolute bottom-[-10%] w-[200%] h-[50vh] border-t border-brand-neon/20 z-0"
+                 style="background-image: linear-gradient(rgba(255, 42, 42, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 42, 42, 0.1) 1px, transparent 1px); background-size: 50px 50px; transform: rotateX(75deg); mask-image: radial-gradient(circle, black 30%, transparent 70%);"></div>
+          </div>
+
+          <div class="absolute bottom-12 flex flex-col items-center gap-2 opacity-50" id="scroll-prompt">
+            <div class="w-[1px] h-12 bg-gradient-to-b from-white to-transparent"></div>
+            <span class="hud-text">ENGAGE SCROLL</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="h-[300vh] bg-brand-dark relative" id="garage-section">
+        <div class="sticky top-0 h-screen w-full overflow-hidden flex items-center">
+
+          <div class="absolute top-1/4 left-12 z-20 pointer-events-none mix-blend-screen">
+            <h2 class="font-display font-bold text-5xl md:text-8xl tracking-tighter opacity-20 outline-text" style="-webkit-text-stroke: 1px #fff; color: transparent;">THE FLEET</h2>
+          </div>
+
+          <div class="flex gap-16 px-[10vw] absolute left-0" id="garage-track">
+
+            <!-- ✅ Fleet card 1 -->
+            <div class="fleet-card glass-panel w-[80vw] md:w-[40vw] h-[60vh] rounded-3xl p-8 flex flex-col justify-between interactive group shrink-0 relative overflow-hidden"
+                 data-car="p1">
+              <div class="absolute top-0 left-0 w-full h-1 bg-brand-neon transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>
+              <div class="flex items-start justify-between gap-4">
+                <div>
+                  <div class="hud-text text-brand-neon mb-2">BAY 01 // AVAILABLE</div>
+                  <h3 class="font-display font-bold text-3xl">MCLAREN P1</h3>
+                </div>
+                <button class="spec-btn border border-white/20 px-4 py-2 rounded-full hud-text hover:bg-white hover:text-black transition-colors interactive magnetic" type="button">
+                  SPECS
+                </button>
+              </div>
+
+              <img src="https://freepngimg.com/thumb/mclaren/23243-mclaren-p1-transparent-image.png"
+                   class="w-full object-contain transform group-hover:scale-110 group-hover:-translate-x-4 transition-all duration-700"
+                   alt="McLaren P1">
+
+              <div class="flex justify-between items-end gap-3">
+                <div>
+                  <div class="text-xs text-gray-500 font-sans tracking-widest">ACQUISITION</div>
+                  <div class="text-2xl font-bold font-sans tracking-widest">$1.35M</div>
+                </div>
+                <div class="flex gap-3">
+                  <button class="testdrive-btn bg-white text-black px-5 py-2 rounded-full hud-text hover:bg-brand-neon hover:text-white transition-colors interactive magnetic" type="button">
+                    TEST DRIVE
+                  </button>
+                  <!-- ✅ AUTHORIZE -> WhatsApp lead -->
+                  <a class="authorize-btn border border-white/20 px-6 py-2 rounded-full hud-text hover:bg-white hover:text-black transition-colors interactive magnetic"
+                     href="#" target="_blank" rel="noopener">
+                    AUTHORIZE
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <!-- ✅ Fleet card 2 -->
+            <div class="fleet-card glass-panel w-[80vw] md:w-[40vw] h-[60vh] rounded-3xl p-8 flex flex-col justify-between interactive group shrink-0 relative overflow-hidden"
+                 data-car="chiron">
+              <div class="absolute top-0 left-0 w-full h-1 bg-brand-neon transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>
+              <div class="flex items-start justify-between gap-4">
+                <div>
+                  <div class="hud-text text-brand-neon mb-2">BAY 02 // AVAILABLE</div>
+                  <h3 class="font-display font-bold text-3xl">BUGATTI CHIRON</h3>
+                </div>
+                <button class="spec-btn border border-white/20 px-4 py-2 rounded-full hud-text hover:bg-white hover:text-black transition-colors interactive magnetic" type="button">
+                  SPECS
+                </button>
+              </div>
+
+              <img src="https://purepng.com/public/uploads/large/purepng.com-bugatti-chiron-blue-carcarvehicletransportbugatti-961524653731u9k5c.png"
+                   class="w-full object-contain transform group-hover:scale-110 transition-all duration-700"
+                   alt="Bugatti Chiron">
+
+              <div class="flex justify-between items-end gap-3">
+                <div>
+                  <div class="text-xs text-gray-500 font-sans tracking-widest">ACQUISITION</div>
+                  <div class="text-2xl font-bold font-sans tracking-widest">$3.80M</div>
+                </div>
+                <div class="flex gap-3">
+                  <button class="testdrive-btn bg-white text-black px-5 py-2 rounded-full hud-text hover:bg-brand-neon hover:text-white transition-colors interactive magnetic" type="button">
+                    TEST DRIVE
+                  </button>
+                  <a class="authorize-btn border border-white/20 px-6 py-2 rounded-full hud-text hover:bg-white hover:text-black transition-colors interactive magnetic"
+                     href="#" target="_blank" rel="noopener">
+                    AUTHORIZE
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <!-- ✅ Fleet card 3 -->
+            <div class="fleet-card glass-panel w-[80vw] md:w-[40vw] h-[60vh] rounded-3xl p-8 flex flex-col justify-between interactive group shrink-0 relative overflow-hidden"
+                 data-car="gt3">
+              <div class="absolute top-0 left-0 w-full h-1 bg-brand-neon transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>
+              <div class="flex items-start justify-between gap-4">
+                <div>
+                  <div class="hud-text text-brand-neon mb-2">BAY 03 // AVAILABLE</div>
+                  <h3 class="font-display font-bold text-3xl">PORSCHE 911 GT3</h3>
+                </div>
+                <button class="spec-btn border border-white/20 px-4 py-2 rounded-full hud-text hover:bg-white hover:text-black transition-colors interactive magnetic" type="button">
+                  SPECS
+                </button>
+              </div>
+
+              <img src="https://freepngimg.com/thumb/porsche/22467-5-porsche-911-transparent.png"
+                   class="w-full object-contain transform group-hover:scale-110 group-hover:translate-x-4 transition-all duration-700"
+                   alt="Porsche 911 GT3">
+
+              <div class="flex justify-between items-end gap-3">
+                <div>
+                  <div class="text-xs text-gray-500 font-sans tracking-widest">ACQUISITION</div>
+                  <div class="text-2xl font-bold font-sans tracking-widest">$223K</div>
+                </div>
+                <div class="flex gap-3">
+                  <button class="testdrive-btn bg-white text-black px-5 py-2 rounded-full hud-text hover:bg-brand-neon hover:text-white transition-colors interactive magnetic" type="button">
+                    TEST DRIVE
+                  </button>
+                  <a class="authorize-btn border border-white/20 px-6 py-2 rounded-full hud-text hover:bg-white hover:text-black transition-colors interactive magnetic"
+                     href="#" target="_blank" rel="noopener">
+                    AUTHORIZE
+                  </a>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <section class="py-32 px-[5vw] relative bg-[#020202]">
+        <div class="text-center mb-20 clip-text">
+          <h2 class="font-display font-bold text-4xl tracking-widest uppercase"><span>Telemetry Analytics</span></h2>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-12 max-w-6xl mx-auto" id="gauges-container">
+          <div class="flex flex-col items-center glass-panel p-10 rounded-full aspect-square justify-center relative interactive">
+            <svg class="absolute w-full h-full rotate-[-90deg] p-4" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="45" fill="none" stroke="#222" stroke-width="2"></circle>
+              <circle cx="50" cy="50" r="45" fill="none" stroke="var(--neon)" stroke-width="4" class="gauge-circle" data-val="70"></circle>
+            </svg>
+            <span class="text-4xl font-bold font-sans">2.5<span class="text-lg text-brand-neon">s</span></span>
+            <span class="hud-text mt-2">0-100 KM/H</span>
+          </div>
+          <div class="flex flex-col items-center glass-panel p-10 rounded-full aspect-square justify-center relative interactive">
+            <svg class="absolute w-full h-full rotate-[-90deg] p-4" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="45" fill="none" stroke="#222" stroke-width="2"></circle>
+              <circle cx="50" cy="50" r="45" fill="none" stroke="var(--neon)" stroke-width="4" class="gauge-circle" data-val="90"></circle>
+            </svg>
+            <span class="text-4xl font-bold font-sans">1001</span>
+            <span class="hud-text mt-2">HORSEPOWER</span>
+          </div>
+          <div class="flex flex-col items-center glass-panel p-10 rounded-full aspect-square justify-center relative interactive">
+            <svg class="absolute w-full h-full rotate-[-90deg] p-4" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="45" fill="none" stroke="#222" stroke-width="2"></circle>
+              <circle cx="50" cy="50" r="45" fill="none" stroke="var(--neon)" stroke-width="4" class="gauge-circle" data-val="50"></circle>
+            </svg>
+            <span class="text-4xl font-bold font-sans">350</span>
+            <span class="hud-text mt-2">TOP SPEED (KM/H)</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="py-32 px-[5vw] border-t border-white/5 bg-[#050505]">
+        <div class="max-w-4xl mx-auto glass-panel p-12 rounded-[40px]">
+          <div class="flex flex-col md:flex-row gap-16">
+            <div class="flex-1">
+              <h2 class="font-display font-bold text-2xl tracking-widest mb-2">CAPITAL PROTOCOL</h2>
+              <p class="hud-text mb-12">Configure Acquisition Terms</p>
+
+              <div class="mb-8">
+                <div class="flex justify-between hud-text mb-4"><span>Down Payment</span> <span id="dp-val" class="text-brand-neon">20%</span></div>
+                <input type="range" id="slider-dp" min="10" max="80" value="20" class="interactive">
+              </div>
+
+              <div>
+                <div class="flex justify-between hud-text mb-4"><span>Term Length</span> <span id="term-val" class="text-brand-neon">48 Months</span></div>
+                <input type="range" id="slider-term" min="12" max="72" step="12" value="48" class="interactive">
+              </div>
+            </div>
+
+            <div class="flex-1 border-t md:border-t-0 md:border-l border-white/10 pt-8 md:pt-0 md:pl-16 flex flex-col justify-center">
+              <div class="hud-text mb-2">ESTIMATED OBLIGATION</div>
+              <div class="font-display font-bold text-5xl tracking-tighter text-white mb-2">$<span id="emi-calc">6,450</span></div>
+              <div class="text-sm text-gray-500 font-sans tracking-widest mb-8">/ MONTH</div>
+              <button class="w-full bg-white text-black py-4 rounded-xl font-bold font-sans tracking-[3px] uppercase hover:bg-brand-neon hover:text-white transition-colors interactive magnetic" type="button">
+                Initialize Loan
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <script>
+    gsap.registerPlugin(ScrollTrigger);
+
+    /* =========================
+       ✅ CONFIG (your number set)
+       ========================= */
+    const DEALERSHIP_WHATSAPP = "919510275215"; // Hrutvik's provided number
+    const DEALERSHIP_NAME = "LUXE Showroom";
+    const DEALERSHIP_CITY = "Vadodara";
+
+    const cars = {
+      p1: {
+        name: "McLaren P1",
+        price: "$1.35M",
+        vin: "SBM12AAB0FW000P1X",
+        year: "2015",
+        stock: "LUXE-P1-001",
+        power: "903 HP",
+        zero: "2.8s",
+        top: "350 km/h",
+        drive: "RWD",
+        trans: "7-Speed Dual-Clutch",
+        ext: "Volcano Yellow",
+        int: "Black Alcantara",
+        miles: "7,900 km"
+      },
+      chiron: {
+        name: "Bugatti Chiron",
+        price: "$3.80M",
+        vin: "VF9SP3V39HM000CHN",
+        year: "2018",
+        stock: "LUXE-CHR-002",
+        power: "1500 HP",
+        zero: "2.4s",
+        top: "420 km/h",
+        drive: "AWD",
+        trans: "7-Speed Dual-Clutch",
+        ext: "Atlantic Blue",
+        int: "Black Leather",
+        miles: "5,200 km"
+      },
+      gt3: {
+        name: "Porsche 911 GT3",
+        price: "$223K",
+        vin: "WP0ZZZ99ZRS000GT3",
+        year: "2022",
+        stock: "LUXE-GT3-003",
+        power: "502 HP",
+        zero: "3.4s",
+        top: "318 km/h",
+        drive: "RWD",
+        trans: "PDK 7-Speed",
+        ext: "Guards Red",
+        int: "Black + Red Stitch",
+        miles: "11,400 km"
+      }
+    };
+
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const finePointer = window.matchMedia("(hover:hover) and (pointer:fine)").matches;
+
+    /* --- Audio logic (armed after click) --- */
+    const hoverSound = document.getElementById('hover-sound');
+    const engineSound = document.getElementById('engine-sound');
+    let audioArmed = false;
+
+    function safePlay(audio, volume=0.2){
+      try{
+        audio.currentTime = 0;
+        audio.volume = volume;
+        audio.play().catch(()=>{});
+      } catch(e){}
+    }
+
+    document.querySelectorAll('.interactive').forEach(el => {
+      el.addEventListener('mouseenter', () => {
+        if (!audioArmed || !finePointer) return;
+        safePlay(hoverSound, 0.18);
+      });
+    });
+
+    /* --- Cursor --- */
+    const cursorDot = document.querySelector('.cursor-dot');
+    const cursorRing = document.querySelector('.cursor-ring');
+
+    window.addEventListener('mousemove', (e) => {
+      cursorDot.style.left = e.clientX + 'px';
+      cursorDot.style.top = e.clientY + 'px';
+
+      setTimeout(() => {
+        cursorRing.style.left = e.clientX + 'px';
+        cursorRing.style.top = e.clientY + 'px';
+      }, 50);
+    });
+
+    document.querySelectorAll('.interactive, a, button').forEach(el => {
+      el.addEventListener('mouseenter', () => document.body.classList.add('hovered'));
+      el.addEventListener('mouseleave', () => document.body.classList.remove('hovered'));
+    });
+
+    /* --- Clock --- */
+    setInterval(() => {
+      document.getElementById('nav-time').innerText = new Date().toLocaleTimeString('en-US', { hour12: false });
+    }, 1000);
+
+    /* --- Lenis Smooth Scroll --- */
+    let lenis = null;
+    if (!prefersReducedMotion) {
+      lenis = new Lenis({
+        duration: 1.2,
+        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        direction: 'vertical',
+        gestureDirection: 'vertical',
+        smooth: true,
+        mouseMultiplier: 1,
+        smoothTouch: false,
+      });
+
+      function raf(time) {
+        lenis.raf(time);
+        requestAnimationFrame(raf);
+      }
+      requestAnimationFrame(raf);
+
+      lenis.on('scroll', ScrollTrigger.update);
+      gsap.ticker.add((time)=>{ lenis.raf(time * 1000) });
+      gsap.ticker.lagSmoothing(0);
+    }
+
+    /* --- Loader --- */
+    const initBtn = document.getElementById('init-btn');
+    initBtn.addEventListener('click', () => {
+      audioArmed = true;
+      safePlay(engineSound, 0.35);
+
+      gsap.to('#loader', {
+        opacity: 0,
+        duration: 0.8,
+        ease: "power2.inOut",
+        onComplete: () => { document.getElementById('loader').style.display = 'none'; }
+      });
+    });
+
+    /* --- Hero scroll --- */
+    if (!prefersReducedMotion) {
+      let heroTl = gsap.timeline({
+        scrollTrigger: {
+          trigger: "#hero-section",
+          start: "top top",
+          end: "+=150%",
+          scrub: 1,
+          pin: true,
+        }
+      });
+
+      heroTl.to("#hero-car", {
+        scale: 2.2,
+        x: "-20vw",
+        filter: "drop-shadow(30px 50px 30px rgba(0,0,0,0.8))",
+        ease: "power1.inOut"
+      }, 0)
+      .to("#spec-1", { opacity: 1, x: 20 }, 0.2)
+      .to("#spec-2", { opacity: 1, x: -20 }, 0.4)
+      .to("#scroll-prompt", { opacity: 0 }, 0)
+      .to("#hero-light", { opacity: 0.5, scale: 1.5, background: "radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 60%)" }, 0);
+    } else {
+      gsap.set("#spec-1", { opacity: 1 });
+      gsap.set("#spec-2", { opacity: 1 });
+    }
+
+    /* --- Garage horizontal scroll --- */
+    if (!prefersReducedMotion) {
+      let garageTl = gsap.timeline({
+        scrollTrigger: {
+          trigger: "#garage-section",
+          start: "top top",
+          end: "+=200%",
+          scrub: 1,
+          pin: true,
+        }
+      });
+
+      garageTl.to("#garage-track", {
+        x: () => -(document.getElementById("garage-track").scrollWidth - window.innerWidth + 100),
+        ease: "none"
+      });
+    }
+
+    /* --- Gauge animation --- */
+    ScrollTrigger.create({
+      trigger: "#gauges-container",
+      start: "top 70%",
+      onEnter: () => {
+        document.getElementById('gauges-container').classList.add('visible');
+        document.querySelectorAll('.gauge-circle').forEach(circle => {
+          let val = Number(circle.getAttribute('data-val') || "0");
+          let offset = 283 - (283 * val / 100);
+          circle.style.strokeDashoffset = offset;
+        });
+      }
+    });
+
+    /* --- EMI logic --- */
+    const sliderDp = document.getElementById('slider-dp');
+    const sliderTerm = document.getElementById('slider-term');
+    const dpVal = document.getElementById('dp-val');
+    const termVal = document.getElementById('term-val');
+    const emiCalc = document.getElementById('emi-calc');
+
+    const carPrice = 324000;
+    const interestRate = 0.05;
+
+    function calculateEMI() {
+      let dpPercent = sliderDp.value / 100;
+      let months = Number(sliderTerm.value);
+
+      dpVal.innerText = `${sliderDp.value}%`;
+      termVal.innerText = `${months} Months`;
+
+      let principal = carPrice - (carPrice * dpPercent);
+      let r = interestRate / 12;
+      let n = months;
+
+      let emi = (principal * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+      emiCalc.innerText = Math.round(emi).toLocaleString();
+    }
+    sliderDp.addEventListener('input', calculateEMI);
+    sliderTerm.addEventListener('input', calculateEMI);
+    calculateEMI();
+
+    /* =========================
+       ✅ WhatsApp helpers
+       ========================= */
+    function waLink(message) {
+      return `https://wa.me/${DEALERSHIP_WHATSAPP}?text=${encodeURIComponent(message)}`;
+    }
+
+    function authorizeMsg(car) {
+      return (
+        `Hi ${DEALERSHIP_NAME}, I want to AUTHORIZE / proceed for:\n\n` +
+        `Car: ${car.name}\nVIN: ${car.vin}\nStock: ${car.stock}\nPrice: ${car.price}\n\n` +
+        `City: ${DEALERSHIP_CITY}\nPlease share next steps, payment terms, and availability.`
+      );
+    }
+
+    /* ✅ Wire AUTHORIZE buttons to WhatsApp per car */
+    document.querySelectorAll(".fleet-card").forEach(card => {
+      const key = card.getAttribute("data-car");
+      const car = cars[key];
+      const auth = card.querySelector(".authorize-btn");
+      if (auth && car) auth.href = waLink(authorizeMsg(car));
+    });
+
+    /* =========================
+       ✅ Overlay open/close
+       ========================= */
+    const specOverlay = document.getElementById("specOverlay");
+    const testDriveModal = document.getElementById("testDriveModal");
+
+    function openOverlay(el) {
+      el.classList.add("show");
+      document.body.style.overflow = "hidden";
+      if (!prefersReducedMotion) gsap.fromTo(el.querySelector(".overlay-panel"), { y: 22, opacity: 0 }, { y: 0, opacity: 1, duration: 0.35, ease: "power2.out" });
+    }
+    function closeOverlay(el) {
+      el.classList.remove("show");
+      document.body.style.overflow = "";
+    }
+
+    document.querySelectorAll("[data-close]").forEach(btn => {
+      btn.addEventListener("click", () => closeOverlay(document.getElementById(btn.getAttribute("data-close"))));
+    });
+
+    [specOverlay, testDriveModal].forEach(overlay => {
+      overlay.addEventListener("click", (e) => { if (e.target === overlay) closeOverlay(overlay); });
+    });
+
+    window.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+      if (specOverlay.classList.contains("show")) closeOverlay(specOverlay);
+      if (testDriveModal.classList.contains("show")) closeOverlay(testDriveModal);
+    });
+
+    /* =========================
+       ✅ VIN / Spec Sheet overlay per car
+       ========================= */
+    let activeCarKey = "p1";
+
+    function setSpec(key) {
+      const c = cars[key];
+      if (!c) return;
+      activeCarKey = key;
+
+      document.getElementById("specTitle").textContent = c.name;
+      document.getElementById("specVIN").textContent = c.vin;
+      document.getElementById("specYear").textContent = c.year;
+      document.getElementById("specStock").textContent = c.stock;
+
+      document.getElementById("specPower").textContent = c.power;
+      document.getElementById("specZero").textContent = c.zero;
+      document.getElementById("specTop").textContent = c.top;
+      document.getElementById("specDrive").textContent = c.drive;
+
+      document.getElementById("specTrans").textContent = c.trans;
+      document.getElementById("specExt").textContent = c.ext;
+      document.getElementById("specInt").textContent = c.int;
+      document.getElementById("specMiles").textContent = c.miles;
+
+      const msg = (
+        `Hi ${DEALERSHIP_NAME}, I'm interested in:\n\n` +
+        `Car: ${c.name}\nVIN: ${c.vin}\nStock: ${c.stock}\nPrice: ${c.price}\n\n` +
+        `Please share availability & details.`
+      );
+      document.getElementById("specWhatsBtn").href = waLink(msg);
+    }
+
+    document.querySelectorAll(".fleet-card").forEach(card => {
+      const key = card.getAttribute("data-car");
+
+      // SPECS button
+      card.querySelector(".spec-btn")?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        setSpec(key);
+        openOverlay(specOverlay);
+      });
+
+      // Clicking card opens specs too (optional, looks premium)
+      card.addEventListener("click", () => {
+        setSpec(key);
+        openOverlay(specOverlay);
+      });
+    });
+
+    /* =========================
+       ✅ Test Drive modal + WhatsApp lead
+       ========================= */
+    function setTestDrive(key) {
+      const c = cars[key];
+      if (!c) return;
+      activeCarKey = key;
+
+      document.getElementById("tdCarName").textContent = c.name;
+      document.getElementById("tdVIN").textContent = c.vin;
+      document.getElementById("tdPrice").textContent = c.price;
+
+      // default to tomorrow
+      const d = new Date(); d.setDate(d.getDate() + 1);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth()+1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      document.getElementById("tdDate").value = `${yyyy}-${mm}-${dd}`;
+      document.getElementById("tdTime").value = "11:00";
+      document.getElementById("tdLocation").value = "";
+      document.getElementById("tdNotes").value = "";
+      updateTestDriveWA();
+    }
+
+    function updateTestDriveWA() {
+      const c = cars[activeCarKey];
+      if (!c) return;
+
+      const name = document.getElementById("tdName").value.trim();
+      const phone = document.getElementById("tdPhone").value.trim();
+      const date = document.getElementById("tdDate").value;
+      const time = document.getElementById("tdTime").value;
+      const location = document.getElementById("tdLocation").value;
+      const notes = document.getElementById("tdNotes").value.trim();
+
+      const msg =
+        `Hi ${DEALERSHIP_NAME}, I want to book a TEST DRIVE.\n\n` +
+        `Car: ${c.name}\nVIN: ${c.vin}\nStock: ${c.stock}\nPrice: ${c.price}\n\n` +
+        `Name: ${name || "(not provided)"}\nPhone: ${phone || "(not provided)"}\n` +
+        `Date/Time: ${date || "(date)"} ${time || "(time)"}\n` +
+        `Location: ${location || "(select)"}\n` +
+        `Notes: ${notes || "-"}\n\n` +
+        `Please confirm available slots.`;
+
+      document.getElementById("tdWhatsApp").href = waLink(msg);
+    }
+
+    ["tdName","tdPhone","tdDate","tdTime","tdLocation","tdNotes"].forEach(id => {
+      document.getElementById(id).addEventListener("input", updateTestDriveWA);
+      document.getElementById(id).addEventListener("change", updateTestDriveWA);
+    });
+
+    // TEST DRIVE buttons on cards
+    document.querySelectorAll(".fleet-card .testdrive-btn").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const key = btn.closest(".fleet-card").getAttribute("data-car");
+        setTestDrive(key);
+        openOverlay(testDriveModal);
+      });
+    });
+
+    // Spec overlay -> Book Test Drive
+    document.getElementById("specTestDriveBtn").addEventListener("click", () => {
+      closeOverlay(specOverlay);
+      setTestDrive(activeCarKey);
+      openOverlay(testDriveModal);
+    });
+
+    document.getElementById("testDriveForm").addEventListener("submit", (e) => e.preventDefault());
+
+    /* =========================
+       ✅ 3D TILT on fleet cards (real interaction)
+       ========================= */
+    if (finePointer && !prefersReducedMotion) {
+      document.querySelectorAll(".fleet-card").forEach(card => {
+        const strength = 10; // degrees
+        card.addEventListener("mousemove", (e) => {
+          const r = card.getBoundingClientRect();
+          const px = (e.clientX - r.left) / r.width;
+          const py = (e.clientY - r.top) / r.height;
+
+          const rx = (py - 0.5) * -strength;
+          const ry = (px - 0.5) * strength;
+
+          card.style.transform = `perspective(900px) rotateX(${rx}deg) rotateY(${ry}deg) translateY(-2px)`;
+        });
+
+        card.addEventListener("mouseleave", () => {
+          card.style.transform = `perspective(900px) rotateX(0deg) rotateY(0deg) translateY(0px)`;
+        });
+      });
+    }
+
+    /* =========================
+       ✅ Magnetic buttons (real interaction)
+       ========================= */
+    if (finePointer && !prefersReducedMotion) {
+      document.querySelectorAll(".magnetic").forEach(el => {
+        const power = 18; // px
+        el.addEventListener("mousemove", (e) => {
+          const r = el.getBoundingClientRect();
+          const x = e.clientX - (r.left + r.width / 2);
+          const y = e.clientY - (r.top + r.height / 2);
+          const nx = (x / (r.width / 2)) * power;
+          const ny = (y / (r.height / 2)) * power;
+          el.style.transform = `translate(${nx}px, ${ny}px)`;
+        });
+        el.addEventListener("mouseleave", () => { el.style.transform = "translate(0px,0px)"; });
+      });
+    }
+  </script>
+</body>
+</html>

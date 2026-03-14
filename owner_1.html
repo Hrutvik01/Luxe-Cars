@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sovereign Terminal | Luxe Drive Owner</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --accent: #e67e22;
+            --glass: rgba(10, 10, 10, 0.95);
+            --border: rgba(255, 255, 255, 0.12);
+            --card: rgba(255, 255, 255, 0.02);
+            --success: #2ecc71;
+            --error: #e74c3c;
+            --gold: #d4af37;
+        }
+
+        /* --- THEME SETUP --- */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #050505; }
+        ::-webkit-scrollbar-thumb { background: #222; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #000; color: white; font-family: 'Plus Jakarta Sans', sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+        header { padding: 20px 40px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: var(--glass); z-index: 10; }
+        .logo { font-family: 'Syncopate'; font-size: 0.9rem; letter-spacing: 5px; font-weight: 700; color: white; }
+        .logo span { color: var(--gold); }
+        .clock { font-family: 'Syncopate'; font-size: 0.65rem; color: var(--gold); letter-spacing: 2px; }
+
+        .wrapper { display: flex; flex: 1; overflow: hidden; }
+
+        /* --- LEFT PANEL --- */
+        .inventory-sec { flex: 2.2; padding: 30px; overflow-y: auto; border-right: 1px solid var(--border); }
+        
+        .owner-identity-banner { 
+            background: linear-gradient(90deg, var(--card), rgba(212, 175, 55, 0.05)); 
+            border: 1px solid var(--gold); border-radius: 25px; 
+            padding: 25px; margin-bottom: 35px; display: flex; align-items: center; gap: 40px; 
+        }
+
+        /* PFP DYNAMIC SYSTEM */
+        .pfp-wrapper { position: relative; flex-shrink: 0; }
+        .pfp-container { 
+            width: 85px; height: 85px; border-radius: 50%; border: 2px solid var(--gold); 
+            overflow: hidden; background: #111; cursor: pointer; position: relative;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
+        }
+        .pfp-container img { width: 100%; height: 100%; object-fit: cover; }
+        .pfp-overlay { 
+            position: absolute; inset: 0; background: rgba(0,0,0,0.7); 
+            display: flex; align-items: center; justify-content: center; 
+            opacity: 0; transition: 0.3s; font-size: 0.5rem; font-weight: 800; color: var(--gold); 
+        }
+        .pfp-container:hover .pfp-overlay { opacity: 1; }
+        
+        #pfp-upload { display: none; }
+
+        .identity-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 25px; flex-grow: 1; }
+        .id-label { font-size: 0.5rem; color: #555; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 5px; display: block; }
+        .id-value { font-size: 0.75rem; color: #eee; font-weight: 600; }
+
+        /* --- MANAGEMENT GRID (FLIP CARDS) --- */
+        .management-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 25px; }
+        .luxe-card { height: 340px; perspective: 1000px; cursor: pointer; }
+        .luxe-card-inner { position: relative; width: 100%; height: 100%; transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1); transform-style: preserve-3d; }
+        .luxe-card.is-flipped .luxe-card-inner { transform: rotateY(180deg); }
+
+        .luxe-card-front, .luxe-card-back {
+            position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden; backface-visibility: hidden;
+            border: 1px solid var(--border); border-radius: 25px; background: rgba(255,255,255,0.02);
+            display: flex; flex-direction: column; padding: 25px;
+        }
+
+        .luxe-card-front { justify-content: center; align-items: center; text-align: center; }
+        .luxe-card-front h3 { font-family: 'Syncopate'; font-size: 0.6rem; color: white; letter-spacing: 2px; margin-top: 15px; }
+        .luxe-card-front p { font-size: 0.55rem; color: var(--gold); font-weight: 800; text-transform: uppercase; margin-top: 5px; }
+
+        .luxe-card-back { transform: rotateY(180deg); background: #0a0a0a; display: flex; flex-direction: column; }
+        .back-title { font-family: 'Syncopate'; font-size: 0.5rem; color: var(--gold); margin-bottom: 15px; display: block; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
+        .back-content { flex: 1; overflow-y: auto; margin-bottom: 15px; }
+
+        .action-row { width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); cursor: default; }
+        .row-name { font-size: 0.75rem; font-weight: 700; color: #fff; }
+        .row-sub { font-size: 0.6rem; color: #555; }
+        .staff-pfp-mini { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; }
+        
+        .btn-mini { padding: 6px 12px; border-radius: 6px; border: none; font-size: 0.5rem; font-weight: 800; cursor: pointer; text-transform: uppercase; transition: 0.2s; }
+        .btn-appr { background: var(--success); color: black; }
+        .btn-rejt { background: var(--error); color: white; }
+
+        .btn-flip-back {
+            width: 100%; background: transparent; color: #444; border: 1px solid #222;
+            padding: 10px; border-radius: 12px; font-size: 0.5rem; font-weight: 800;
+            font-family: 'Syncopate'; letter-spacing: 2px; cursor: pointer; transition: 0.3s;
+        }
+        .btn-flip-back:hover { border-color: var(--gold); color: var(--gold); }
+
+        /* --- SIDE PANEL --- */
+        .side-panel { flex: 1; padding: 30px; display: flex; flex-direction: column; overflow-y: auto; background: rgba(255,255,255,0.01); }
+        .ui-card { background: #0a0a0a; padding: 25px; border-radius: 24px; border: 1px solid var(--border); margin-bottom: 25px; position: relative; }
+        .ui-card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--gold); opacity: 0.8; }
+        .sec-title { font-family: 'Syncopate'; font-size: 0.5rem; color: var(--gold); letter-spacing: 3px; margin-bottom: 15px; display: block; text-transform: uppercase; font-weight: 700; }
+
+        #toast-container { position: fixed; bottom: 30px; right: 30px; z-index: 1000; }
+        .toast { background: #111; border: 1px solid var(--gold); padding: 15px 25px; border-radius: 12px; margin-top: 10px; font-size: 0.7rem; font-weight: 600; animation: slideIn 0.3s ease; }
+        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">LUXE DRIVE <span>OWNER</span></div>
+        <div class="clock" id="live-clock">00:00:00</div>
+        <div style="background: rgba(212, 175, 55, 0.05); border: 1px solid var(--gold); padding: 8px 25px; border-radius: 50px; font-size: 0.6rem; letter-spacing: 2px; color: var(--gold); font-weight: 800;">
+            ACCESS: UNRESTRICTED (SOVEREIGN)
+        </div>
+        <a href="#" onclick="logout()" style="font-size: 0.7rem; color: #444; text-decoration: none; font-weight: 800; letter-spacing: 1px;">TERMINATE SESSION</a>
+    </header>
+
+    <div class="wrapper">
+        <section class="inventory-sec">
+            <div class="owner-identity-banner">
+                <div class="pfp-wrapper">
+                    <input type="file" id="pfp-upload" accept="image/*">
+                    <div class="pfp-container" onclick="document.getElementById('pfp-upload').click()">
+                        <img id="display-pfp" src="https://randomuser.me/api/portraits/men/11.jpg" alt="Owner">
+                        <div class="pfp-overlay">REPLACE</div>
+                    </div>
+                </div>
+                <div class="identity-grid">
+                    <div><span class="id-label">Ownership</span><span class="id-value">S. Parker (Surat Group)</span></div>
+                    <div><span class="id-label">Total Hubs</span><span class="id-value">14 Terminals</span></div>
+                    <div><span class="id-label">Global Fleet</span><span class="id-value">284 Units</span></div>
+                    <div><span class="id-label">Org Revenue</span><span class="id-value" id="global-rev" style="color: var(--gold);">₹0</span></div>
+                </div>
+            </div>
+
+            <div class="management-grid">
+                <div class="luxe-card" onclick="toggleFlip(this)">
+                    <div class="luxe-card-inner">
+                        <div class="luxe-card-front">
+                            <span style="font-size: 2.5rem;">👑</span>
+                            <h3>Sovereign Clearance</h3>
+                            <p id="pending-veto-count">Checking Manager Logs...</p>
+                        </div>
+                        <div class="luxe-card-back" onclick="event.stopPropagation()">
+                            <span class="back-title">Manager Approval Veto</span>
+                            <div class="back-content" id="veto-list"></div>
+                            <button class="btn-flip-back" onclick="flipBack(this)">↩ RETURN TO CONSOLE</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="luxe-card" onclick="toggleFlip(this)">
+                    <div class="luxe-card-inner">
+                        <div class="luxe-card-front">
+                            <span style="font-size: 2.5rem;">📜</span>
+                            <h3>Audit Protocols</h3>
+                            <p>Activity Stream</p>
+                        </div>
+                        <div class="luxe-card-back" onclick="event.stopPropagation()">
+                            <span class="back-title">System Activity Logs</span>
+                            <div class="back-content">
+                                <div class="action-row"><div class="row-info"><span class="row-name">MGR-Surat</span><span class="row-sub">Authorized Sale Unit-LX-102</span></div></div>
+                                <div class="action-row"><div class="row-info"><span class="row-name">STF-Priya</span><span class="row-sub">Logged OT Duty (4hrs)</span></div></div>
+                            </div>
+                            <button class="btn-flip-back" onclick="flipBack(this)">↩ RETURN TO CONSOLE</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="luxe-card" onclick="toggleFlip(this)">
+                    <div class="luxe-card-inner">
+                        <div class="luxe-card-front">
+                            <span style="font-size: 2.5rem;">💎</span>
+                            <h3>Team Sovereignty</h3>
+                            <p>Performance Audit</p>
+                        </div>
+                        <div class="luxe-card-back" onclick="event.stopPropagation()">
+                            <span class="back-title">Top Organizational Staff</span>
+                            <div class="back-content" id="owner-team-grid"></div>
+                            <button class="btn-flip-back" onclick="flipBack(this)">↩ RETURN TO CONSOLE</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="luxe-card" onclick="handleFlipChart(this)">
+                    <div class="luxe-card-inner">
+                        <div class="luxe-card-front">
+                            <span style="font-size: 2.5rem;">📈</span>
+                            <h3>Equity Analysis</h3>
+                            <p>Global P&L Report</p>
+                        </div>
+                        <div class="luxe-card-back">
+                            <span class="back-title">Organization Growth</span>
+                            <div style="height: 160px; width: 100%;">
+                                <canvas id="ownerChart"></canvas>
+                            </div>
+                            <button class="btn-flip-back" onclick="flipBack(this)">↩ RETURN TO CONSOLE</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="side-panel">
+            <div class="ui-card">
+                <span class="sec-title">Hub Status</span>
+                <div class="action-row" style="border:none"><span class="row-name">Surat Main</span><b style="color:var(--success)">ONLINE</b></div>
+                <div class="action-row" style="border:none"><span class="row-name">Mumbai Hub</span><b style="color:var(--success)">ONLINE</b></div>
+            </div>
+
+            <div class="ui-card">
+                <span class="sec-title">Sovereign Broadcast</span>
+                <input type="text" id="owner-broadcast" class="btn-mini" style="width:100%; background:rgba(212, 175, 55, 0.05); color:white; border:1px solid var(--gold); margin-bottom:10px; padding:12px; cursor:text; text-transform:none;" placeholder="Priority Directive...">
+                <button class="btn-mini" style="width:100%; padding:12px; background:var(--gold); color:black; font-weight:900;" onclick="dispatchOwnerDirective()">DISPATCH DIRECTIVE</button>
+            </div>
+        </section>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script>
+        let chartInit = false;
+
+        function toggleFlip(el) { el.classList.toggle('is-flipped'); }
+        function flipBack(btn) { btn.closest('.luxe-card').classList.remove('is-flipped'); }
+
+        function handleFlipChart(el) {
+            el.classList.toggle('is-flipped');
+            if(!chartInit) { setTimeout(initChart, 400); chartInit = true; }
+        }
+
+        setInterval(() => {
+            document.getElementById('live-clock').innerText = new Date().toLocaleTimeString('en-GB');
+        }, 1000);
+
+        window.onload = function() {
+            loadSavedPFP();
+            syncVetoList();
+            renderOwnerTeam();
+            animateCounter('global-rev', 482500000);
+        };
+
+        // --- PFP SYSTEM ---
+        document.getElementById('pfp-upload').addEventListener('change', function(e) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const base64Img = event.target.result;
+                document.getElementById('display-pfp').src = base64Img;
+                localStorage.setItem('luxe_owner_pfp', base64Img);
+                showToast("SOVEREIGN IDENTITY UPDATED");
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        });
+
+        function loadSavedPFP() {
+            const savedPFP = localStorage.getItem('luxe_owner_pfp');
+            if(savedPFP) document.getElementById('display-pfp').src = savedPFP;
+        }
+
+        // --- DATABASE LINKING ---
+        function syncVetoList() {
+            const container = document.getElementById('veto-list');
+            const data = JSON.parse(localStorage.getItem('luxe_session'));
+            if(data && data.txn) {
+                document.getElementById('pending-veto-count').innerText = "1 TRANSACTION LOGGED";
+                container.innerHTML = `
+                    <div class="action-row">
+                        <div class="row-info"><span class="row-name">${data.cust.name}</span><span class="row-sub">Status: ${data.txn.status}</span></div>
+                        <div style="display:flex;"><button class="btn-mini btn-appr" onclick="sovereignOverride('APPROVED')">FORCE</button><button class="btn-mini btn-rejt" style="margin-left:5px" onclick="sovereignOverride('REJECTED')">VETO</button></div>
+                    </div>`;
+            } else {
+                document.getElementById('pending-veto-count').innerText = "SYSTEM SYNCHRONIZED";
+                container.innerHTML = '<p style="font-size:0.6rem; color:#444; padding-top:20px;">No pending manager overrides.</p>';
+            }
+        }
+
+        function sovereignOverride(status) {
+            let data = JSON.parse(localStorage.getItem('luxe_session'));
+            data.txn.status = status;
+            localStorage.setItem('luxe_session', JSON.stringify(data));
+            showToast(`VETO PROTOCOL: ${status}`);
+            syncVetoList();
+        }
+
+        function renderOwnerTeam() {
+            const staff = [
+                { name: "Arjun Mehta", hub: "Surat", sales: "₹4.2Cr", pfp: "https://randomuser.me/api/portraits/men/32.jpg" },
+                { name: "Priya Singh", hub: "Mumbai", sales: "₹5.1Cr", pfp: "https://randomuser.me/api/portraits/women/3.jpg" }
+            ];
+            document.getElementById('owner-team-grid').innerHTML = staff.map(s => `
+                <div class="action-row">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <img src="${s.pfp}" class="staff-pfp-mini">
+                        <div class="row-info"><span class="row-name">${s.name}</span><span class="row-sub">Hub: ${s.hub}</span></div>
+                    </div>
+                    <b style="font-size:0.7rem; color:var(--gold)">${s.sales}</b>
+                </div>`).join('');
+        }
+
+        function showToast(msg) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerText = msg;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        function animateCounter(id, target) {
+            let current = 0;
+            const el = document.getElementById(id);
+            const timer = setInterval(() => {
+                current += target / 60;
+                if(current >= target) { el.innerText = "₹" + target.toLocaleString(); clearInterval(timer); }
+                else { el.innerText = "₹" + Math.floor(current).toLocaleString(); }
+            }, 30);
+        }
+
+        function dispatchOwnerDirective() {
+            localStorage.setItem('luxe_owner_directive', document.getElementById('owner-broadcast').value);
+            showToast("PRIORITY DIRECTIVE DISPATCHED");
+            document.getElementById('owner-broadcast').value = "";
+        }
+
+        function initChart() {
+            const ctx = document.getElementById('ownerChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Q1', 'Q2', 'Q3', 'Q4'],
+                    datasets: [{ label: 'Growth', data: [45, 59, 80, 124], borderColor: '#d4af37', backgroundColor: 'rgba(212, 175, 55, 0.1)', fill: true, tension: 0.4 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { grid: { display: false }, ticks: { color: '#444' } } } }
+            });
+        }
+
+        function logout() { location.reload(); }
+    </script>
+</body>
+</html>

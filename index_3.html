@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LUXE | Virtual Showroom</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;500;700&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/studio-freight/lenis@1.0.19/bundled/lenis.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Rajdhani', 'sans-serif'],
+                        display: ['Syncopate', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: { dark: '#050505', neon: '#ff2a2a', silver: '#e0e0e0', glass: 'rgba(20,20,20,0.6)' }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        :root { --neon: #ff2a2a; }
+        
+        body, html { margin: 0; padding: 0; background-color: #020202; color: #fff; overflow-x: hidden; cursor: none; }
+        ::selection { background: var(--neon); color: #000; }
+        ::-webkit-scrollbar { display: none; }
+
+        /* Film Grain Overlay */
+        .noise {
+            position: fixed; inset: 0; z-index: 9999; pointer-events: none; opacity: 0.04;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+
+        /* Custom Magnetic Cursor */
+        .cursor-dot { position: fixed; width: 6px; height: 6px; background: var(--neon); border-radius: 50%; pointer-events: none; z-index: 10000; transform: translate(-50%, -50%); transition: width 0.2s, height 0.2s; box-shadow: 0 0 10px var(--neon); }
+        .cursor-ring { position: fixed; width: 40px; height: 40px; border: 1px solid rgba(255, 42, 42, 0.4); border-radius: 50%; pointer-events: none; z-index: 9999; transform: translate(-50%, -50%); transition: 0.15s ease-out; }
+        .hovered .cursor-dot { width: 12px; height: 12px; background: #fff; box-shadow: 0 0 20px #fff; }
+        .hovered .cursor-ring { width: 60px; height: 60px; border-color: #fff; background: rgba(255,255,255,0.05); }
+
+        /* Glassmorphism & Materials */
+        .glass-panel { background: rgba(10, 10, 10, 0.5); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.05); border-top: 1px solid rgba(255, 255, 255, 0.1); }
+        .hud-text { font-family: 'Rajdhani', sans-serif; font-weight: 700; letter-spacing: 4px; text-transform: uppercase; font-size: 0.7rem; color: #888; }
+        
+        /* Dynamic Spotlight */
+        .spotlight { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80vw; height: 80vw; background: radial-gradient(circle, rgba(255,42,42,0.15) 0%, transparent 60%); z-index: -1; filter: blur(50px); pointer-events: none; }
+
+        /* Performance SVG Gauges */
+        .gauge-circle { stroke-dasharray: 283; stroke-dashoffset: 283; transition: stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1); transform: rotate(-90deg); transform-origin: 50% 50%; }
+        .visible .gauge-circle { stroke-dashoffset: 0; }
+
+        /* Range Slider Styling */
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 20px; width: 4px; background: var(--neon); cursor: pointer; box-shadow: 0 0 10px var(--neon); }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 2px; cursor: pointer; background: #333; }
+
+        /* Initial Loader */
+        #loader { position: fixed; inset: 0; background: #000; z-index: 99999; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .engine-start-btn { width: 120px; height: 120px; border: 1px solid #333; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; transition: 0.4s; }
+        .engine-start-btn:hover { border-color: var(--neon); box-shadow: 0 0 30px rgba(255, 42, 42, 0.3) inset, 0 0 30px rgba(255, 42, 42, 0.2); }
+        .engine-start-btn::after { content: ''; position: absolute; width: calc(100% + 20px); height: calc(100% + 20px); border: 1px solid transparent; border-top-color: var(--neon); border-radius: 50%; animation: spin 2s linear infinite; opacity: 0; transition: 0.3s; }
+        .engine-start-btn:hover::after { opacity: 1; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        /* Utility classes for GSAP */
+        .clip-text { clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%); }
+        .clip-text span { display: block; transform: translateY(100%); }
+    </style>
+</head>
+<body>
+
+    <div class="noise"></div>
+    <div class="cursor-dot"></div>
+    <div class="cursor-ring"></div>
+
+    <audio id="engine-sound" src="https://assets.mixkit.co/active_storage/sfx/2652/2652-preview.mp3"></audio>
+    <audio id="hover-sound" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"></audio>
+
+    <div id="loader">
+        <div class="hud-text mb-8 tracking-[10px] text-brand-silver">SYSTEM STANDBY</div>
+        <div class="engine-start-btn interactive" id="init-btn">
+            <span class="font-display font-bold text-sm tracking-widest text-brand-neon">IGNITE</span>
+        </div>
+    </div>
+
+    <nav class="fixed top-0 w-full p-8 flex justify-between items-center z-50 mix-blend-difference pointer-events-none">
+        <div class="font-display font-bold text-2xl tracking-[5px] text-white">LUXE<span class="text-brand-neon">.</span></div>
+        <div class="hud-text flex gap-8">
+            <span>VOL: 22.4L</span>
+            <span>ALT: 45M</span>
+            <span id="nav-time">00:00:00</span>
+        </div>
+    </nav>
+
+    <main id="smooth-wrapper">
+        <div id="smooth-content">
+
+            <section class="relative h-[200vh]" id="hero-section">
+                <div class="sticky top-0 h-screen w-full flex items-center justify-center overflow-hidden bg-[#050505]" id="hero-pin">
+                    <div class="spotlight" id="hero-light"></div>
+                    
+                    <div class="absolute left-10 top-1/3 hud-text opacity-0" id="spec-1">
+                        <div class="text-brand-neon mb-1">[01] AERODYNAMICS</div>
+                        <div class="text-2xl text-white font-sans">CD 0.24</div>
+                    </div>
+                    <div class="absolute right-10 top-1/3 hud-text text-right opacity-0" id="spec-2">
+                        <div class="text-brand-neon mb-1">[02] POWERTRAIN</div>
+                        <div class="text-2xl text-white font-sans">1001 HP</div>
+                    </div>
+
+                    <div class="relative w-[90vw] max-w-[1200px] h-[60vh] flex items-center justify-center perspective-[1000px]" id="car-container">
+                        <img src="https://freepngimg.com/thumb/mclaren/23243-mclaren-p1-transparent-image.png" 
+                             alt="Hypercar" 
+                             class="w-full h-auto object-contain drop-shadow-[0_50px_50px_rgba(0,0,0,0.9)] z-10"
+                             id="hero-car">
+                        
+                        <div class="absolute bottom-[-10%] w-[200%] h-[50vh] border-t border-brand-neon/20 z-0" 
+                             style="background-image: linear-gradient(rgba(255, 42, 42, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 42, 42, 0.1) 1px, transparent 1px); background-size: 50px 50px; transform: rotateX(75deg); mask-image: radial-gradient(circle, black 30%, transparent 70%);"></div>
+                    </div>
+
+                    <div class="absolute bottom-12 flex flex-col items-center gap-2 opacity-50" id="scroll-prompt">
+                        <div class="w-[1px] h-12 bg-gradient-to-b from-white to-transparent"></div>
+                        <span class="hud-text">ENGAGE SCROLL</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="h-[300vh] bg-brand-dark relative" id="garage-section">
+                <div class="sticky top-0 h-screen w-full overflow-hidden flex items-center">
+                    
+                    <div class="absolute top-1/4 left-12 z-20 pointer-events-none mix-blend-screen">
+                        <h2 class="font-display font-bold text-5xl md:text-8xl tracking-tighter opacity-20 outline-text" style="-webkit-text-stroke: 1px #fff; color: transparent;">THE FLEET</h2>
+                    </div>
+
+                    <div class="flex gap-16 px-[10vw] absolute left-0" id="garage-track">
+                        
+                        <div class="glass-panel w-[80vw] md:w-[40vw] h-[60vh] rounded-3xl p-8 flex flex-col justify-between interactive group shrink-0 relative overflow-hidden">
+                            <div class="absolute top-0 left-0 w-full h-1 bg-brand-neon transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>
+                            <div>
+                                <div class="hud-text text-brand-neon mb-2">BAY 01 // AVALIABLE</div>
+                                <h3 class="font-display font-bold text-3xl">MCLAREN P1</h3>
+                            </div>
+                            <img src="https://freepngimg.com/thumb/mclaren/23243-mclaren-p1-transparent-image.png" class="w-full object-contain transform group-hover:scale-110 group-hover:-translate-x-4 transition-all duration-700">
+                            <div class="flex justify-between items-end">
+                                <div>
+                                    <div class="text-xs text-gray-500 font-sans tracking-widest">ACQUISITION</div>
+                                    <div class="text-2xl font-bold font-sans tracking-widest">$1.35M</div>
+                                </div>
+                                <button class="border border-white/20 px-6 py-2 rounded-full hud-text hover:bg-white hover:text-black transition-colors interactive" onclick="window.location.href='inventory_2.html'">AUTHORIZE</button>
+                            </div>
+                        </div>
+
+                        <div class="glass-panel w-[80vw] md:w-[40vw] h-[60vh] rounded-3xl p-8 flex flex-col justify-between interactive group shrink-0 relative overflow-hidden">
+                            <div class="absolute top-0 left-0 w-full h-1 bg-brand-neon transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>
+                            <div>
+                                <div class="hud-text text-brand-neon mb-2">BAY 02 // AVALIABLE</div>
+                                <h3 class="font-display font-bold text-3xl">BUGATTI CHIRON</h3>
+                            </div>
+                            <img src="https://purepng.com/public/uploads/large/purepng.com-bugatti-chiron-blue-carcarvehicletransportbugatti-961524653731u9k5c.png" class="w-full object-contain transform group-hover:scale-110 transition-all duration-700">
+                            <div class="flex justify-between items-end">
+                                <div>
+                                    <div class="text-xs text-gray-500 font-sans tracking-widest">ACQUISITION</div>
+                                    <div class="text-2xl font-bold font-sans tracking-widest">$3.80M</div>
+                                </div>
+                                <button class="border border-white/20 px-6 py-2 rounded-full hud-text hover:bg-white hover:text-black transition-colors interactive" onclick="window.location.href='inventory_2.html'">AUTHORIZE</button>
+                            </div>
+                        </div>
+
+                        <div class="glass-panel w-[80vw] md:w-[40vw] h-[60vh] rounded-3xl p-8 flex flex-col justify-between interactive group shrink-0 relative overflow-hidden">
+                            <div class="absolute top-0 left-0 w-full h-1 bg-brand-neon transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>
+                            <div>
+                                <div class="hud-text text-brand-neon mb-2">BAY 03 // AVALIABLE</div>
+                                <h3 class="font-display font-bold text-3xl">PORSCHE 911 GT3</h3>
+                            </div>
+                            <img src="https://freepngimg.com/thumb/porsche/22467-5-porsche-911-transparent.png" class="w-full object-contain transform group-hover:scale-110 group-hover:translate-x-4 transition-all duration-700">
+                            <div class="flex justify-between items-end">
+                                <div>
+                                    <div class="text-xs text-gray-500 font-sans tracking-widest">ACQUISITION</div>
+                                    <div class="text-2xl font-bold font-sans tracking-widest">$223K</div>
+                                </div>
+                                <button class="border border-white/20 px-6 py-2 rounded-full hud-text hover:bg-white hover:text-black transition-colors interactive" onclick="window.location.href='inventory_2.html'">AUTHORIZE</button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+
+            <section class="py-32 px-[5vw] relative bg-[#020202]">
+                <div class="text-center mb-20 clip-text">
+                    <h2 class="font-display font-bold text-4xl tracking-widest uppercase">Telemetry Analytics</h2>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-12 max-w-6xl mx-auto" id="gauges-container">
+                    <div class="flex flex-col items-center glass-panel p-10 rounded-full aspect-square justify-center relative interactive">
+                        <svg class="absolute w-full h-full rotate-[-90deg] p-4" viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="45" fill="none" stroke="#222" stroke-width="2"></circle>
+                            <circle cx="50" cy="50" r="45" fill="none" stroke="var(--neon)" stroke-width="4" class="gauge-circle" data-val="70"></circle>
+                        </svg>
+                        <span class="text-4xl font-bold font-sans">2.5<span class="text-lg text-brand-neon">s</span></span>
+                        <span class="hud-text mt-2">0-100 KM/H</span>
+                    </div>
+                    <div class="flex flex-col items-center glass-panel p-10 rounded-full aspect-square justify-center relative interactive">
+                        <svg class="absolute w-full h-full rotate-[-90deg] p-4" viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="45" fill="none" stroke="#222" stroke-width="2"></circle>
+                            <circle cx="50" cy="50" r="45" fill="none" stroke="var(--neon)" stroke-width="4" class="gauge-circle" data-val="90"></circle>
+                        </svg>
+                        <span class="text-4xl font-bold font-sans">1001</span>
+                        <span class="hud-text mt-2">HORSEPOWER</span>
+                    </div>
+                    <div class="flex flex-col items-center glass-panel p-10 rounded-full aspect-square justify-center relative interactive">
+                        <svg class="absolute w-full h-full rotate-[-90deg] p-4" viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="45" fill="none" stroke="#222" stroke-width="2"></circle>
+                            <circle cx="50" cy="50" r="45" fill="none" stroke="var(--neon)" stroke-width="4" class="gauge-circle" data-val="50"></circle>
+                        </svg>
+                        <span class="text-4xl font-bold font-sans">350</span>
+                        <span class="hud-text mt-2">TOP SPEED (KM/H)</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="py-32 px-[5vw] border-t border-white/5 bg-[#050505]">
+                <div class="max-w-4xl mx-auto glass-panel p-12 rounded-[40px]">
+                    <div class="flex flex-col md:flex-row gap-16">
+                        <div class="flex-1">
+                            <h2 class="font-display font-bold text-2xl tracking-widest mb-2">CAPITAL PROTOCOL</h2>
+                            <p class="hud-text mb-12">Configure Acquisition Terms</p>
+                            
+                            <div class="mb-8">
+                                <div class="flex justify-between hud-text mb-4"><span>Down Payment</span> <span id="dp-val" class="text-brand-neon">20%</span></div>
+                                <input type="range" id="slider-dp" min="10" max="80" value="20" class="interactive">
+                            </div>
+                            
+                            <div>
+                                <div class="flex justify-between hud-text mb-4"><span>Term Length</span> <span id="term-val" class="text-brand-neon">48 Months</span></div>
+                                <input type="range" id="slider-term" min="12" max="72" step="12" value="48" class="interactive">
+                            </div>
+                        </div>
+                        
+                        <div class="flex-1 border-t md:border-t-0 md:border-l border-white/10 pt-8 md:pt-0 md:pl-16 flex flex-col justify-center">
+                            <div class="hud-text mb-2">ESTIMATED OBLIGATION</div>
+                            <div class="font-display font-bold text-5xl tracking-tighter text-white mb-2">$<span id="emi-calc">6,450</span></div>
+                            <div class="text-sm text-gray-500 font-sans tracking-widest mb-8">/ MONTH</div>
+                            <button class="w-full bg-white text-black py-4 rounded-xl font-bold font-sans tracking-[3px] uppercase hover:bg-brand-neon hover:text-white transition-colors interactive">Initialize Loan</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="h-screen flex items-center justify-center px-[5vw] relative">
+                <div class="absolute inset-0 bg-[radial-gradient(circle_at_bottom,rgba(255,42,42,0.1),transparent_70%)] pointer-events-none"></div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-6xl z-10">
+                    <a href="#" class="group relative h-[30vh] overflow-hidden rounded-2xl border border-white/10 bg-black/50 backdrop-blur flex flex-col justify-end p-8 interactive text-decoration-none">
+                        <div class="absolute inset-0 bg-brand-neon translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-in-out z-0"></div>
+                        <div class="relative z-10">
+                            <div class="hud-text group-hover:text-black transition-colors mb-2">MODULE 01</div>
+                            <h2 class="font-display font-bold text-3xl tracking-widest group-hover:text-black transition-colors">TEST DRIVE</h2>
+                        </div>
+                    </a>
+                    <a href="inventory_2.html" class="group relative h-[30vh] overflow-hidden rounded-2xl border border-white/10 bg-black/50 backdrop-blur flex flex-col justify-end p-8 interactive text-decoration-none">
+                        <div class="absolute inset-0 bg-white translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-in-out z-0"></div>
+                        <div class="relative z-10">
+                            <div class="hud-text group-hover:text-black transition-colors mb-2">MODULE 02</div>
+                            <h2 class="font-display font-bold text-3xl tracking-widest group-hover:text-black transition-colors">GLOBAL FLEET</h2>
+                        </div>
+                    </a>
+                    <a href="customize_1.html" class="group relative h-[30vh] overflow-hidden rounded-2xl border border-white/10 bg-black/50 backdrop-blur flex flex-col justify-end p-8 interactive text-decoration-none">
+                        <div class="absolute inset-0 bg-white translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-in-out z-0"></div>
+                        <div class="relative z-10">
+                            <div class="hud-text group-hover:text-black transition-colors mb-2">MODULE 03</div>
+                            <h2 class="font-display font-bold text-3xl tracking-widest group-hover:text-black transition-colors">BESPOKE STUDIO</h2>
+                        </div>
+                    </a>
+                    <a href="#" class="group relative h-[30vh] overflow-hidden rounded-2xl border border-white/10 bg-black/50 backdrop-blur flex flex-col justify-end p-8 interactive text-decoration-none">
+                        <div class="absolute inset-0 bg-brand-neon translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-in-out z-0"></div>
+                        <div class="relative z-10">
+                            <div class="hud-text group-hover:text-black transition-colors mb-2">MODULE 04</div>
+                            <h2 class="font-display font-bold text-3xl tracking-widest group-hover:text-black transition-colors">EXPERT TERMINAL</h2>
+                        </div>
+                    </a>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <script>
+        // --- 0. UI Audio Logic ---
+        const hoverSound = document.getElementById('hover-sound');
+        const engineSound = document.getElementById('engine-sound');
+        
+        document.querySelectorAll('.interactive').forEach(el => {
+            el.addEventListener('mouseenter', () => {
+                hoverSound.currentTime = 0;
+                hoverSound.volume = 0.2;
+                hoverSound.play().catch(()=>{}); 
+            });
+        });
+
+        // --- 1. Custom Cursor ---
+        const cursorDot = document.querySelector('.cursor-dot');
+        const cursorRing = document.querySelector('.cursor-ring');
+        
+        window.addEventListener('mousemove', (e) => {
+            cursorDot.style.left = e.clientX + 'px';
+            cursorDot.style.top = e.clientY + 'px';
+            
+            setTimeout(() => {
+                cursorRing.style.left = e.clientX + 'px';
+                cursorRing.style.top = e.clientY + 'px';
+            }, 50);
+        });
+
+        document.querySelectorAll('.interactive, a, button').forEach(el => {
+            el.addEventListener('mouseenter', () => document.body.classList.add('hovered'));
+            el.addEventListener('mouseleave', () => document.body.classList.remove('hovered'));
+        });
+
+        // Update Nav Clock
+        setInterval(() => {
+            document.getElementById('nav-time').innerText = new Date().toLocaleTimeString('en-US', { hour12: false });
+        }, 1000);
+
+        // --- 2. Initialize Lenis (Smooth Scroll) ---
+        const lenis = new Lenis({
+            duration: 1.2,
+            easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+            direction: 'vertical',
+            gestureDirection: 'vertical',
+            smooth: true,
+            mouseMultiplier: 1,
+            smoothTouch: false,
+        });
+
+        function raf(time) {
+            lenis.raf(time);
+            requestAnimationFrame(raf);
+        }
+        requestAnimationFrame(raf);
+
+        lenis.on('scroll', ScrollTrigger.update);
+        gsap.ticker.add((time)=>{ lenis.raf(time * 1000) });
+        gsap.ticker.lagSmoothing(0);
+
+        // --- 3. Initial Loader Sequence ---
+        const initBtn = document.getElementById('init-btn');
+        initBtn.addEventListener('click', () => {
+            engineSound.play().catch(()=>{});
+            
+            gsap.to('#loader', {
+                opacity: 0,
+                duration: 0.8,
+                ease: "power2.inOut",
+                onComplete: () => {
+                    document.getElementById('loader').style.display = 'none';
+                    gsap.utils.toArray('.clip-text span').forEach(span => {
+                        gsap.to(span, { y: 0, duration: 1, ease: "expo.out", stagger: 0.1 });
+                    });
+                }
+            });
+        });
+
+        // --- 4. Hero Parallax & Scroll Animations ---
+        let heroTl = gsap.timeline({
+            scrollTrigger: {
+                trigger: "#hero-section",
+                start: "top top",
+                end: "+=150%", 
+                scrub: 1,
+                pin: true,
+            }
+        });
+
+        heroTl.to("#hero-car", {
+            scale: 2.2,
+            x: "-20vw", 
+            filter: "drop-shadow(30px 50px 30px rgba(0,0,0,0.8))",
+            ease: "power1.inOut"
+        }, 0)
+        .to("#spec-1", { opacity: 1, x: 20 }, 0.2)
+        .to("#spec-2", { opacity: 1, x: -20 }, 0.4)
+        .to("#scroll-prompt", { opacity: 0 }, 0)
+        .to("#hero-light", { opacity: 0.5, scale: 1.5, background: "radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 60%)" }, 0);
+
+
+        // --- 5. Garage Horizontal Scroll ---
+        let garageTl = gsap.timeline({
+            scrollTrigger: {
+                trigger: "#garage-section",
+                start: "top top",
+                end: "+=200%",
+                scrub: 1,
+                pin: true,
+            }
+        });
+
+        garageTl.to("#garage-track", {
+            x: () => -(document.getElementById("garage-track").scrollWidth - window.innerWidth + 100),
+            ease: "none"
+        });
+
+        // --- 6. Performance Gauges Animation ---
+        ScrollTrigger.create({
+            trigger: "#gauges-container",
+            start: "top 70%",
+            onEnter: () => {
+                document.getElementById('gauges-container').classList.add('visible');
+                document.querySelectorAll('.gauge-circle').forEach(circle => {
+                    let val = circle.getAttribute('data-val');
+                    let offset = 283 - (283 * val / 100);
+                    circle.style.strokeDashoffset = offset;
+                });
+            }
+        });
+
+        // --- 7. Finance Simulator Logic ---
+        const sliderDp = document.getElementById('slider-dp');
+        const sliderTerm = document.getElementById('slider-term');
+        const dpVal = document.getElementById('dp-val');
+        const termVal = document.getElementById('term-val');
+        const emiCalc = document.getElementById('emi-calc');
+
+        const carPrice = 324000; 
+        const interestRate = 0.05;
+
+        function calculateEMI() {
+            let dpPercent = sliderDp.value / 100;
+            let months = sliderTerm.value;
+            
+            dpVal.innerText = `${sliderDp.value}%`;
+            termVal.innerText = `${months} Months`;
+
+            let principal = carPrice - (carPrice * dpPercent);
+            let r = interestRate / 12;
+            let n = months;
+            
+            let emi = (principal * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+            
+            emiCalc.innerText = Math.round(emi).toLocaleString();
+        }
+
+        sliderDp.addEventListener('input', calculateEMI);
+        sliderTerm.addEventListener('input', calculateEMI);
+
+        calculateEMI();
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luxe Drive | Masterpiece in Motion</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --accent: #e67e22;
+            --bg-color: #030303;
+            --glass-bg: rgba(20, 20, 20, 0.4);
+            --glass-border: rgba(255, 255, 255, 0.08);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-color); }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+
+        body {
+            background-color: var(--bg-color);
+            color: white;
+            overflow-x: hidden;
+        }
+
+        /* --- CINEMATIC LOADER --- */
+        .loader {
+            position: fixed; inset: 0; background: #000; z-index: 99999;
+            display: flex; justify-content: center; align-items: center;
+            animation: fadeOutLoader 1.5s cubic-bezier(0.8, 0, 0.2, 1) 2s forwards;
+            pointer-events: none;
+        }
+        .loader-text {
+            font-family: 'Syncopate', sans-serif; font-size: 2rem; font-weight: 900;
+            letter-spacing: 15px; text-transform: uppercase;
+            background: linear-gradient(90deg, #fff, #555);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            animation: pulseGlow 2s infinite alternate;
+        }
+
+        @keyframes fadeOutLoader { to { opacity: 0; visibility: hidden; } }
+        @keyframes pulseGlow { 0% { filter: drop-shadow(0 0 10px rgba(255,255,255,0.2)); } 100% { filter: drop-shadow(0 0 30px rgba(230,126,34,0.6)); } }
+
+        /* --- NAVIGATION --- */
+        nav {
+            position: fixed; top: 0; width: 100%; padding: 25px 5vw;
+            display: flex; justify-content: space-between; align-items: center;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            z-index: 1000; transition: 0.4s;
+        }
+        .nav-scrolled { background: rgba(5, 5, 5, 0.85); border-bottom: 1px solid var(--glass-border); padding: 15px 5vw; }
+        
+        .logo { font-family: 'Syncopate', sans-serif; font-weight: 900; font-size: 1.2rem; letter-spacing: 4px; text-decoration: none; color: white; display: flex; align-items: center; gap: 10px; }
+        .logo span { color: var(--accent); }
+
+        .nav-links { display: flex; gap: 40px; }
+        .nav-links a { color: #ccc; text-decoration: none; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; transition: 0.3s; }
+        .nav-links a:hover { color: var(--accent); }
+
+        .btn-portal {
+            background: transparent; color: white; border: 1px solid rgba(255,255,255,0.3);
+            padding: 10px 25px; border-radius: 30px; font-size: 0.7rem; font-weight: 800;
+            letter-spacing: 1px; text-transform: uppercase; cursor: pointer; transition: 0.3s; text-decoration: none;
+        }
+        .btn-portal:hover { background: white; color: black; }
+
+        /* --- HERO SECTION --- */
+        .hero {
+            position: relative; height: 100vh; width: 100%;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            text-align: center; overflow: hidden; padding: 0 20px;
+        }
+
+        .video-bg {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            min-width: 100%; min-height: 100%; width: auto; height: auto;
+            z-index: -2; object-fit: cover; transition: transform 0.1s linear;
+        }
+        
+        .hero-overlay {
+            position: absolute; inset: 0;
+            background: radial-gradient(circle at center, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.8) 100%);
+            z-index: -1;
+        }
+
+        .hero-content {
+            z-index: 1; transform: translateY(30px); opacity: 0;
+            animation: slideUpFade 1.5s cubic-bezier(0.4, 0, 0.2, 1) 2.5s forwards;
+        }
+
+        .hero h1 {
+            font-family: 'Syncopate', sans-serif; font-size: clamp(3rem, 7vw, 7rem);
+            font-weight: 900; line-height: 1.1; text-transform: uppercase;
+            letter-spacing: -2px; margin-bottom: 20px;
+        }
+        .hero h1 span { color: transparent; -webkit-text-stroke: 1px rgba(255,255,255,0.5); }
+
+        .hero p {
+            font-size: clamp(0.9rem, 1.2vw, 1.2rem); color: #ccc; font-weight: 400;
+            max-width: 600px; margin: 0 auto 40px; letter-spacing: 1px; line-height: 1.6;
+        }
+
+        .btn-primary {
+            position: relative; display: inline-flex; align-items: center; justify-content: center;
+            padding: 18px 45px; background: var(--accent); color: white; text-decoration: none;
+            font-weight: 900; font-size: 0.85rem; letter-spacing: 3px; text-transform: uppercase;
+            border-radius: 50px; overflow: hidden; transition: 0.4s; z-index: 1;
+        }
+        .btn-primary::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 0%; height: 100%;
+            background: white; z-index: -1; transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-primary:hover { color: black; box-shadow: 0 15px 30px rgba(230, 126, 34, 0.4); transform: translateY(-3px); }
+        .btn-primary:hover::before { width: 100%; }
+
+        /* Scroll Indicator */
+        .scroll-indicator {
+            position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
+            display: flex; flex-direction: column; align-items: center; gap: 10px;
+            opacity: 0.5; animation: bounce 2s infinite; z-index: 2;
+        }
+        .scroll-indicator span { font-size: 0.6rem; letter-spacing: 3px; text-transform: uppercase; font-weight: 700; }
+        .mouse { width: 24px; height: 36px; border: 2px solid white; border-radius: 12px; position: relative; }
+        .wheel { width: 4px; height: 6px; background: white; border-radius: 2px; position: absolute; top: 6px; left: 50%; transform: translateX(-50%); animation: scrollWheel 1.5s infinite; }
+
+        @keyframes slideUpFade { to { transform: translateY(0); opacity: 1; } }
+        @keyframes bounce { 0%, 100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, 10px); } }
+        @keyframes scrollWheel { 0% { top: 6px; opacity: 1; } 100% { top: 18px; opacity: 0; } }
+
+        /* --- FEATURES SECTION --- */
+        .features { padding: 120px 5vw; background: var(--bg-color); position: relative; z-index: 10; }
+        .section-header { text-align: center; margin-bottom: 80px; }
+        .section-header h2 { font-family: 'Syncopate', sans-serif; font-size: 2.5rem; font-weight: 900; text-transform: uppercase; }
+        .section-header p { color: var(--accent); font-size: 0.8rem; font-weight: 700; letter-spacing: 4px; text-transform: uppercase; margin-bottom: 10px; }
+
+        .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; }
+        
+        .feature-card {
+            background: var(--glass-bg); border: 1px solid var(--glass-border);
+            padding: 50px 40px; border-radius: 30px; backdrop-filter: blur(20px);
+            transition: 0.4s; cursor: crosshair; text-align: left;
+        }
+        .feature-card:hover { transform: translateY(-10px); border-color: rgba(230,126,34,0.5); background: rgba(20,20,20,0.8); }
+        .feature-icon { font-size: 2.5rem; margin-bottom: 25px; color: var(--accent); }
+        .feature-card h3 { font-size: 1.3rem; font-weight: 900; margin-bottom: 15px; letter-spacing: 1px; }
+        .feature-card p { font-size: 0.85rem; color: #aaa; line-height: 1.6; }
+    </style>
+</head>
+<body>
+
+    <div class="loader">
+        <div class="loader-text">LUXE DRIVE</div>
+    </div>
+
+    <nav id="navbar">
+        <a href="#" class="logo">LUXE <span>DRIVE</span></a>
+        <div class="nav-links">
+            <a href="inventory_2.html">Global Fleet</a>
+            <a href="customize_1.html">Bespoke Studio</a>
+            <a href="#features">Experience</a>
+        </div>
+        <a href="login_10.html" class="btn-portal">MGR Terminal</a>
+    </nav>
+
+    <section class="hero">
+        <video class="video-bg" id="hero-vid" autoplay loop muted playsinline>
+            <source src="https://assets.mixkit.co/videos/preview/mixkit-sports-car-driving-through-a-dark-tunnel-41617-large.mp4" type="video/mp4">
+        </video>
+        <div class="hero-overlay"></div>
+
+        <div class="hero-content">
+            <h1>Engineered<br><span>For The</span> Elite</h1>
+            <p>Experience uncompromised power and bespoke luxury. Access the world's most exclusive hypercar fleet directly from your terminal.</p>
+            <a href="inventory_2.html" class="btn-primary" id="magnetic-btn">Explore The Fleet</a>
+        </div>
+
+        <div class="scroll-indicator">
+            <span>Scroll</span>
+            <div class="mouse"><div class="wheel"></div></div>
+        </div>
+    </section>
+
+    <section class="features" id="features">
+        <div class="section-header">
+            <p>The Ecosystem</p>
+            <h2>Beyond Driving</h2>
+        </div>
+
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🏎️</div>
+                <h3>Sovereign Fleet</h3>
+                <p>Access a curated selection of over 50 hypercars, ranging from hybrid Marvels like the McLaren P1 to the raw W16 power of Bugatti.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🎨</div>
+                <h3>Bespoke Studio</h3>
+                <p>Tailor your machine to your exact aesthetic. From exterior paint matching to interior upholstery, configure perfection.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🛡️</div>
+                <h3>Executive Ownership</h3>
+                <p>Complete your transaction seamlessly through our secure terminal. Direct priority clearance and white-glove global delivery.</p>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        // --- 1. Navbar Scroll Effect ---
+        window.addEventListener('scroll', () => {
+            const nav = document.getElementById('navbar');
+            if (window.scrollY > 50) {
+                nav.classList.add('nav-scrolled');
+            } else {
+                nav.classList.remove('nav-scrolled');
+            }
+        });
+
+        // --- 2. Video Parallax Effect ---
+        const video = document.getElementById('hero-vid');
+        window.addEventListener('scroll', () => {
+            let scrollPos = window.scrollY;
+            // Moves the video slightly slower than the scroll to create depth
+            video.style.transform = `translate(-50%, calc(-50% + ${scrollPos * 0.4}px))`;
+        });
+
+        // --- 3. Magnetic Button Effect on Main CTA ---
+        const magBtn = document.getElementById('magnetic-btn');
+        magBtn.addEventListener('mousemove', (e) => {
+            const rect = magBtn.getBoundingClientRect();
+            const x = e.clientX - rect.left - rect.width / 2;
+            const y = e.clientY - rect.top - rect.height / 2;
+            
+            // Move button slightly towards cursor
+            magBtn.style.transform = `translate(${x * 0.2}px, ${y * 0.2}px) scale(1.05)`;
+        });
+
+        magBtn.addEventListener('mouseleave', () => {
+            // Reset position smoothly
+            magBtn.style.transform = `translate(0px, 0px) scale(1)`;
+        });
+    </script>
+</body>
+</html>

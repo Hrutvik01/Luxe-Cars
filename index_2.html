@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luxe Drive | Elite Fleet Access</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { accent: '#e67e22', dark: '#030303' },
+                    fontFamily: { sans: ['Inter', 'sans-serif'], display: ['Syncopate', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* Custom CSS for Complex Animations not covered by Tailwind */
+        body { background-color: #030303; color: white; overflow-x: hidden; cursor: none; }
+        ::-webkit-scrollbar { display: none; }
+
+        /* Custom Cursor */
+        .cursor-dot { position: fixed; top: 0; left: 0; width: 8px; height: 8px; background: #e67e22; border-radius: 50%; pointer-events: none; z-index: 99999; transform: translate(-50%, -50%); transition: width 0.2s, height 0.2s; }
+        .cursor-outline { position: fixed; top: 0; left: 0; width: 40px; height: 40px; border: 1px solid rgba(230, 126, 34, 0.5); border-radius: 50%; pointer-events: none; z-index: 99998; transform: translate(-50%, -50%); transition: 0.15s ease-out; }
+        
+        /* Preloader */
+        .loader-wrapper { transition: opacity 0.8s cubic-bezier(0.8, 0, 0.2, 1), transform 0.8s cubic-bezier(0.8, 0, 0.2, 1); }
+        .loader-hidden { opacity: 0; transform: translateY(-100%); pointer-events: none; }
+
+        /* Typography Animations */
+        .reveal-text { clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%); }
+        .reveal-text span { display: inline-block; transform: translateY(100%); transition: transform 1s cubic-bezier(0.2, 0.6, 0.2, 1); }
+        .revealed span { transform: translateY(0); }
+
+        /* Video Background Overlay */
+        .video-overlay { background: radial-gradient(circle at center, rgba(0,0,0,0.4) 0%, #030303 100%); }
+
+        /* Magnetic Button Glow */
+        .magnetic-btn::before {
+            content: ''; position: absolute; inset: 0; background: rgba(230, 126, 34, 0);
+            transition: 0.4s; z-index: -1; border-radius: inherit;
+        }
+        .magnetic-btn:hover::before { background: rgba(230, 126, 34, 1); box-shadow: 0 0 30px rgba(230, 126, 34, 0.6); }
+
+        /* 3D Glass Card */
+        .glass-card { background: rgba(20, 20, 20, 0.4); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.05); transform-style: preserve-3d; }
+        .glass-card-inner { transform: translateZ(30px); }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- CUSTOM CURSOR COMPONENT ---
+        const CustomCursor = () => {
+            const dotRef = useRef(null);
+            const outlineRef = useRef(null);
+
+            useEffect(() => {
+                const moveCursor = (e) => {
+                    if(dotRef.current && outlineRef.current) {
+                        dotRef.current.style.left = `${e.clientX}px`;
+                        dotRef.current.style.top = `${e.clientY}px`;
+                        outlineRef.current.style.left = `${e.clientX}px`;
+                        outlineRef.current.style.top = `${e.clientY}px`;
+                    }
+                };
+                
+                const handleHover = () => {
+                    if(outlineRef.current) {
+                        outlineRef.current.style.transform = 'translate(-50%, -50%) scale(1.5)';
+                        outlineRef.current.style.borderColor = '#fff';
+                    }
+                };
+                const handleLeave = () => {
+                    if(outlineRef.current) {
+                        outlineRef.current.style.transform = 'translate(-50%, -50%) scale(1)';
+                        outlineRef.current.style.borderColor = 'rgba(230, 126, 34, 0.5)';
+                    }
+                };
+
+                window.addEventListener('mousemove', moveCursor);
+                document.querySelectorAll('a, button').forEach(el => {
+                    el.addEventListener('mouseenter', handleHover);
+                    el.addEventListener('mouseleave', handleLeave);
+                });
+
+                return () => {
+                    window.removeEventListener('mousemove', moveCursor);
+                    document.querySelectorAll('a, button').forEach(el => {
+                        el.removeEventListener('mouseenter', handleHover);
+                        el.removeEventListener('mouseleave', handleLeave);
+                    });
+                };
+            }, []);
+
+            return (
+                <React.Fragment>
+                    <div ref={dotRef} className="cursor-dot hidden md:block"></div>
+                    <div ref={outlineRef} className="cursor-outline hidden md:block"></div>
+                </React.Fragment>
+            );
+        };
+
+        // --- PRELOADER COMPONENT ---
+        const Preloader = ({ onLoadComplete }) => {
+            const [progress, setProgress] = useState(0);
+            const [hidden, setHidden] = useState(false);
+
+            useEffect(() => {
+                let current = 0;
+                const interval = setInterval(() => {
+                    current += Math.floor(Math.random() * 5) + 1;
+                    if (current >= 100) {
+                        current = 100;
+                        clearInterval(interval);
+                        setTimeout(() => {
+                            setHidden(true);
+                            setTimeout(onLoadComplete, 800); // Wait for slide up animation
+                        }, 500);
+                    }
+                    setProgress(current);
+                }, 40);
+                return () => clearInterval(interval);
+            }, [onLoadComplete]);
+
+            return (
+                <div className={`fixed inset-0 z-50 bg-black flex flex-col items-center justify-center loader-wrapper ${hidden ? 'loader-hidden' : ''}`}>
+                    <h1 className="font-display text-4xl md:text-6xl text-white tracking-[10px] mb-8">
+                        LUXE <span className="text-accent">DRIVE</span>
+                    </h1>
+                    <div className="w-64 h-[2px] bg-gray-900 overflow-hidden relative">
+                        <div className="absolute top-0 left-0 h-full bg-accent transition-all duration-75" style={{ width: `${progress}%` }}></div>
+                    </div>
+                    <p className="font-sans text-xs tracking-[5px] text-gray-500 mt-4">INITIALIZING SYSTEM {progress}%</p>
+                </div>
+            );
+        };
+
+        // --- MAGNETIC BUTTON COMPONENT ---
+        const MagneticButton = ({ children, href }) => {
+            const btnRef = useRef(null);
+
+            const handleMouseMove = (e) => {
+                const btn = btnRef.current;
+                const rect = btn.getBoundingClientRect();
+                const x = e.clientX - rect.left - rect.width / 2;
+                const y = e.clientY - rect.top - rect.height / 2;
+                btn.style.transform = `translate(${x * 0.3}px, ${y * 0.3}px)`;
+            };
+
+            const handleMouseLeave = () => {
+                btnRef.current.style.transform = `translate(0px, 0px)`;
+            };
+
+            return (
+                <a 
+                    ref={btnRef}
+                    href={href}
+                    onMouseMove={handleMouseMove}
+                    onMouseLeave={handleMouseLeave}
+                    className="magnetic-btn relative inline-flex items-center justify-center px-10 py-5 border border-white/20 rounded-full font-display font-bold text-sm tracking-[3px] text-white overflow-hidden transition-transform duration-200 ease-out"
+                >
+                    <span className="relative z-10">{children}</span>
+                </a>
+            );
+        };
+
+        // --- 3D TILT CARD COMPONENT ---
+        const TiltCard = ({ title, desc, icon }) => {
+            const cardRef = useRef(null);
+            
+            const handleMouseMove = (e) => {
+                const card = cardRef.current;
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                
+                const rotateX = ((y - centerY) / centerY) * -15;
+                const rotateY = ((x - centerX) / centerX) * 15;
+                
+                card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+            };
+
+            const handleMouseLeave = () => {
+                cardRef.current.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`;
+            };
+
+            return (
+                <div 
+                    ref={cardRef}
+                    onMouseMove={handleMouseMove}
+                    onMouseLeave={handleMouseLeave}
+                    className="glass-card rounded-[30px] p-10 transition-transform duration-200 ease-out"
+                >
+                    <div className="glass-card-inner flex flex-col h-full pointer-events-none">
+                        <div className="text-4xl mb-6 text-accent">{icon}</div>
+                        <h3 className="font-display font-bold text-xl mb-4 uppercase tracking-wide">{title}</h3>
+                        <p className="font-sans text-sm text-gray-400 leading-relaxed">{desc}</p>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- MAIN APP COMPONENT ---
+        const App = () => {
+            const [loaded, setLoaded] = useState(false);
+            const heroRef = useRef(null);
+
+            // Parallax effect on scroll
+            useEffect(() => {
+                const handleScroll = () => {
+                    if(heroRef.current) {
+                        const scrolled = window.scrollY;
+                        heroRef.current.style.transform = `translateY(${scrolled * 0.4}px)`;
+                    }
+                };
+                window.addEventListener('scroll', handleScroll);
+                return () => window.removeEventListener('scroll', handleScroll);
+            }, []);
+
+            return (
+                <div className="bg-dark min-h-screen">
+                    <CustomCursor />
+                    {!loaded && <Preloader onLoadComplete={() => setLoaded(true)} />}
+
+                    {/* Navbar */}
+                    <nav className={`fixed w-full z-40 transition-all duration-500 ${loaded ? 'top-0 opacity-100' : '-top-20 opacity-0'} flex justify-between items-center px-6 md:px-12 py-6 bg-gradient-to-b from-black/80 to-transparent backdrop-blur-sm`}>
+                        <div className="font-display font-black text-xl tracking-[4px]">LUXE<span className="text-accent">DRIVE</span></div>
+                        <div className="hidden md:flex gap-10 font-sans text-xs font-bold tracking-[2px] uppercase">
+                            <a href="#" className="hover:text-accent transition-colors">The Experience</a>
+                            <a href="#engineering" className="hover:text-accent transition-colors">Engineering</a>
+                        </div>
+                        <a href="pro_11.html" className="border border-white/20 px-6 py-2 rounded-full font-sans text-xs font-bold tracking-[2px] uppercase hover:bg-white hover:text-black transition-all">
+                            Terminal
+                        </a>
+                    </nav>
+
+                    {/* Hero Section */}
+                    <section className="relative h-screen w-full overflow-hidden flex items-center justify-center">
+                        <div ref={heroRef} className="absolute inset-0 w-full h-full z-0">
+                            <video autoPlay loop muted playsInline className="w-full h-full object-cover">
+                                <source src="https://assets.mixkit.co/videos/preview/mixkit-sports-car-driving-through-a-dark-tunnel-41617-large.mp4" type="video/mp4" />
+                            </video>
+                            <div className="absolute inset-0 video-overlay"></div>
+                        </div>
+
+                        <div className={`relative z-10 flex flex-col items-center text-center px-4 transition-all duration-1000 delay-300 ${loaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+                            <div className={`reveal-text ${loaded ? 'revealed' : ''}`}>
+                                <h1 className="font-display font-black text-[12vw] md:text-[8vw] leading-none uppercase tracking-tighter text-transparent" style={{ WebkitTextStroke: '1px rgba(255,255,255,0.8)' }}>
+                                    <span>Masterpiece</span>
+                                </h1>
+                            </div>
+                            <div className={`reveal-text ${loaded ? 'revealed' : ''}`} style={{ transitionDelay: '0.1s' }}>
+                                <h1 className="font-display font-black text-[10vw] md:text-[6vw] leading-none uppercase tracking-tighter text-white mb-8">
+                                    <span>In Motion</span>
+                                </h1>
+                            </div>
+                            
+                            <p className="font-sans text-sm md:text-base text-gray-300 max-w-2xl mb-12 tracking-wide leading-relaxed opacity-0 animate-[slideUpFade_1s_ease-out_1s_forwards]">
+                                Step into the ultimate automotive terminal. Configure, compare, and command the world's most exclusive hypercars.
+                            </p>
+
+                            <div className="opacity-0 animate-[slideUpFade_1s_ease-out_1.2s_forwards]">
+                                <MagneticButton href="pro_11.html">
+                                    Access Global Fleet
+                                </MagneticButton>
+                            </div>
+                        </div>
+
+                        {/* Scroll Indicator */}
+                        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-50">
+                            <span className="font-sans text-[10px] uppercase tracking-[3px]">Scroll</span>
+                            <div className="w-[1px] h-10 bg-gradient-to-b from-accent to-transparent"></div>
+                        </div>
+                    </section>
+
+                    {/* 3D Features Section */}
+                    <section id="engineering" className="relative z-20 bg-dark py-32 px-6 md:px-12">
+                        <div className="max-w-7xl mx-auto">
+                            <div className="text-center mb-24">
+                                <h2 className="font-display font-black text-3xl md:text-5xl uppercase tracking-tighter mb-4">The Architecture</h2>
+                                <div className="w-12 h-1 bg-accent mx-auto"></div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                <TiltCard 
+                                    icon="🏎️"
+                                    title="Sovereign Garage" 
+                                    desc="Instantly access a heavily curated database of 50 elite vehicles from Bugatti to McLaren. All technical specifications dynamically rendered."
+                                />
+                                <TiltCard 
+                                    icon="⚖️"
+                                    title="Dual Analytics" 
+                                    desc="Engage the Head-to-Head protocol. Compare torque, aero, and drivetrain data side-by-side in real-time before authorizing your acquisition."
+                                />
+                                <TiltCard 
+                                    icon="🎨"
+                                    title="Bespoke Studio" 
+                                    desc="Push your chosen chassis to the customization suite. Paint matching and internal configurations applied instantly to your profile."
+                                />
+                            </div>
+                        </div>
+                    </section>
+                    
+                    {/* Footer CTA */}
+                    <section className="relative z-20 py-32 bg-black text-center border-t border-white/5">
+                        <h2 className="font-display font-black text-2xl md:text-4xl uppercase tracking-widest mb-10 text-white/50">Terminal Awaiting</h2>
+                        <MagneticButton href="pro_11.html">Initialize Pro_11 Protocol</MagneticButton>
+                    </section>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

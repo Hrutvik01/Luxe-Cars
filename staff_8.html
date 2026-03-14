@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Executive Terminal | Luxe Drive</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --accent: #e67e22;
+            --glass: rgba(10, 10, 10, 0.95);
+            --border: rgba(255, 255, 255, 0.08);
+            --card: rgba(255, 255, 255, 0.02);
+            --success: #2ecc71;
+            --error: #e74c3c;
+        }
+
+        /* --- THEME MATCHED SCROLLBAR --- */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #050505; }
+        ::-webkit-scrollbar-thumb { background: #222; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #000; color: white; font-family: 'Plus Jakarta Sans', sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+        header {
+            padding: 20px 40px; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center; background: var(--glass);
+        }
+        .logo { font-family: 'Syncopate'; font-size: 0.9rem; letter-spacing: 5px; font-weight: 700; }
+
+        .quota-header {
+            background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+            padding: 8px 20px; border-radius: 50px; display: flex; align-items: center; gap: 15px;
+        }
+        .quota-label { font-size: 0.6rem; font-weight: 800; color: #555; letter-spacing: 2px; }
+        .quota-val { font-weight: 800; color: var(--accent); }
+
+        .wrapper { display: flex; flex: 1; overflow: hidden; }
+
+        /* --- INVENTORY SECTION --- */
+        .inventory-sec { flex: 2.2; padding: 30px; overflow-y: auto; border-right: 1px solid var(--border); }
+
+        .staff-identity-banner {
+            background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border);
+            border-radius: 25px; padding: 25px; margin-bottom: 35px;
+            display: flex; align-items: center; gap: 40px;
+        }
+
+        .pfp-wrapper { position: relative; flex-shrink: 0; }
+        .pfp-container {
+            width: 85px; height: 85px; border-radius: 50%; border: 2px solid var(--accent);
+            overflow: hidden; cursor: pointer; background: #111;
+            display: flex; align-items: center; justify-content: center; position: relative;
+        }
+        .pfp-container img { width: 100%; height: 100%; object-fit: cover; }
+        .pfp-placeholder { font-size: 2rem; opacity: 0.3; }
+        
+        .pfp-overlay {
+            position: absolute; inset: 0; background: rgba(0,0,0,0.7);
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; transition: 0.3s; font-size: 0.5rem; font-weight: 800; border-radius: 50%;
+        }
+        .pfp-container:hover .pfp-overlay { opacity: 1; }
+
+        .btn-reset-pfp {
+            position: absolute; top: 0; right: 0; background: var(--error); color: white;
+            border: none; width: 22px; height: 22px; border-radius: 50%; font-size: 10px;
+            cursor: pointer; z-index: 10; display: none;
+        }
+        .pfp-wrapper:hover .btn-reset-pfp { display: block; }
+
+        .identity-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 30px; flex-grow: 1; }
+        .id-label { font-size: 0.5rem; color: #444; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 4px; display: block; }
+        .id-value { font-size: 0.75rem; color: #ccc; font-weight: 600; }
+
+        /* CAR GRID */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; }
+        .car-card { 
+            background: var(--card); border: 1px solid var(--border); border-radius: 20px; 
+            overflow: hidden; transition: 0.4s; position: relative;
+        }
+        .car-card:hover { border-color: var(--accent); transform: translateY(-5px); }
+        .car-img-box { width: 100%; height: 130px; overflow: hidden; background: #111; }
+        .car-img-box img { width: 100%; height: 100%; object-fit: cover; transition: 0.5s; }
+        .car-card:hover .car-img-box img { transform: scale(1.1); }
+
+        .car-card.sold { opacity: 0.3; filter: grayscale(1); pointer-events: none; }
+        .car-card.sold::after {
+            content: "SOLD"; position: absolute; top: 50%; left: 0; width: 100%;
+            text-align: center; color: var(--accent); font-family: 'Syncopate'; font-weight: 700;
+            transform: translateY(-50%) rotate(-15deg); font-size: 1.5rem; z-index: 5;
+        }
+
+        .car-details { padding: 15px; }
+        .car-price { font-size: 0.7rem; color: var(--accent); font-weight: 800; margin-bottom: 12px; display: block; }
+        .btn-sell { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #333; background: rgba(255,255,255,0.03); color: white; font-size: 0.6rem; font-weight: 800; cursor: pointer; text-transform: uppercase; }
+
+        /* --- SALARY SECTION --- */
+        .salary-sec { flex: 1; padding: 30px; display: flex; flex-direction: column; overflow-y: auto; }
+        .sec-label { font-family: 'Syncopate'; font-size: 0.55rem; color: var(--accent); letter-spacing: 3px; margin-bottom: 25px; }
+        .salary-display { background: #0a0a0a; padding: 30px; border-radius: 25px; border: 1px solid var(--border); text-align: center; }
+        .amount { font-size: 2.2rem; font-weight: 800; margin: 10px 0; }
+
+        /* PROGRESS CHART */
+        .chart-container { margin-top: 30px; background: rgba(255,255,255,0.02); padding: 20px; border-radius: 20px; border: 1px solid var(--border); }
+        .chart-bar-bg { width: 100%; height: 6px; background: #222; border-radius: 10px; margin-top: 15px; overflow: hidden; }
+        .chart-bar-fill { height: 100%; width: 0%; background: var(--accent); transition: 1s ease; box-shadow: 0 0 10px var(--accent); }
+
+        .history-item { 
+            display: flex; justify-content: space-between; padding: 18px; 
+            border-bottom: 1px solid var(--border); font-size: 0.75rem; cursor: pointer; transition: 0.3s;
+        }
+        .history-item:hover { color: var(--accent); background: rgba(255,255,255,0.02); }
+
+        /* MODAL */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.95); backdrop-filter: blur(20px);
+            display: none; justify-content: center; align-items: center; z-index: 1000;
+        }
+        .modal-card { background: #111; border: 1px solid var(--border); padding: 50px; border-radius: 35px; width: 420px; text-align: center; }
+        
+        #print-area { display: none; }
+        @media print {
+            body * { visibility: hidden; }
+            #print-area, #print-area * { visibility: visible; }
+            #print-area { position: absolute; left: 0; top: 0; width: 100%; display: block; color: black; background: white; padding: 50px; }
+        }
+
+        #file-input { display: none; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">LUXE DRIVE</div>
+        <div class="quota-header">
+            <span class="quota-label">WEEKLY QUOTA:</span>
+            <span class="quota-val" id="quota-display">0 / 3 UNITS</span>
+        </div>
+        <a href="index.html" onclick="logout()" style="font-size: 0.7rem; color: #444; text-decoration: none; font-weight: 800;">LOGOUT</a>
+    </header>
+
+    <div class="wrapper">
+        <section class="inventory-sec">
+            <div class="staff-identity-banner">
+                <input type="file" id="file-input" accept="image/*">
+                <div class="pfp-wrapper">
+                    <button class="btn-reset-pfp" onclick="resetIdentity(event)">✕</button>
+                    <div class="pfp-container" onclick="document.getElementById('file-input').click()">
+                        <img id="pfp-img" src="" style="display: none;">
+                        <div id="pfp-placeholder" class="pfp-placeholder">👤</div>
+                        <div class="pfp-overlay">CHANGE</div>
+                    </div>
+                </div>
+                <div class="identity-grid">
+                    <div class="identity-item"><span class="id-label">Staff Member</span><span class="id-value" id="display-name">---</span></div>
+                    <div class="identity-item"><span class="id-label">Official Email</span><span class="id-value" id="display-email">---</span></div>
+                    <div class="identity-item"><span class="id-label">Reporting Manager</span><span class="id-value" id="display-manager">---</span></div>
+                    <div class="identity-item"><span class="id-label">Franchise</span><span class="id-value" id="display-location" style="color:var(--accent);">---</span></div>
+                </div>
+            </div>
+
+            <h2 style="font-family:'Syncopate'; font-size:0.55rem; color:var(--accent); margin-bottom:20px; letter-spacing:3px;">LIVE INVENTORY MGMT</h2>
+            <div class="grid" id="inventory-grid"></div>
+        </section>
+
+        <section class="salary-sec">
+            <h2 class="sec-label">FINANCIAL TERMINAL</h2>
+            <div class="salary-display">
+                <p style="font-size: 0.5rem; color: #444;">CURRENT PERIOD ESTIMATE</p>
+                <div class="amount" id="salary-total">$5,000.00</div>
+                <p style="font-size: 0.6rem; color: #444;" id="comm-tag">Quota Incomplete</p>
+            </div>
+
+            <div class="chart-container">
+                <div style="display: flex; justify-content: space-between; font-size: 0.6rem; color: #555;">
+                    <span>QUOTA PROGRESS</span><span id="chart-percent">0%</span>
+                </div>
+                <div class="chart-bar-bg"><div class="chart-bar-fill" id="chart-fill"></div></div>
+            </div>
+
+            <h2 class="sec-label" style="margin-top: 40px;">PAST STATEMENTS (PRINT)</h2>
+            <div id="history-list">
+                <div class="history-item" onclick="handlePrintRequest('December 2025', 5280)">
+                    <span>DECEMBER 2025</span><strong>$5,280.00</strong>
+                </div>
+                <div class="history-item" onclick="handlePrintRequest('November 2025', 5000)">
+                    <span>NOVEMBER 2025</span><strong>$5,000.00</strong>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal-card">
+            <div style="font-size: 3rem; margin-bottom: 25px;">🔒</div>
+            <h3 style="font-family: 'Syncopate'; font-size: 0.8rem; margin-bottom: 15px; color: var(--accent);">ACCESS RESTRICTED</h3>
+            <p style="font-size: 0.75rem; color: #666; line-height: 1.6; margin-bottom: 30px;">
+                Payroll documentation for the current cycle is finalized on the **10th of the following month**.
+            </p>
+            <button class="btn-sell" style="padding: 18px;" onclick="closeModal()">ACKNOWLEDGE</button>
+        </div>
+    </div>
+
+    <div id="print-area">
+        <h1 style="font-family: 'Syncopate'; text-align: center;">LUXE DRIVE | SALARY STATEMENT</h1>
+        <hr style="margin: 25px 0;">
+        <p><strong>Employee:</strong> <span id="slip-name"></span></p>
+        <p><strong>Location:</strong> <span id="slip-loc"></span></p>
+        <p><strong>Period:</strong> <span id="slip-month"></span></p>
+        <div style="margin-top: 40px; border: 2px solid #000; padding: 25px; font-size: 1.2rem;">
+            <strong>NET PAYOUT: <span id="slip-total"></span></strong>
+        </div>
+    </div>
+
+    <script>
+        const BASE = 5000;
+        let sold = 0; let comm = 0;
+
+        // --- AUTH & DATA HANDSHAKE ---
+        window.onload = function() {
+            const userData = JSON.parse(localStorage.getItem('loggedUser'));
+            
+            if (userData) {
+                // Populate Identity Banner
+                document.getElementById('display-name').innerText = userData.name;
+                document.getElementById('display-email').innerText = userData.email;
+                document.getElementById('display-manager').innerText = userData.manager;
+                document.getElementById('display-location').innerText = userData.loc;
+
+                setupPFP();
+                initInventory();
+                updateUI();
+            } else {
+                // Bounce back to login if unauthorized
+                window.location.href = 'index.html';
+            }
+        };
+
+        // --- BIOMETRIC PFP SYSTEM ---
+        function setupPFP() {
+            const fileIn = document.getElementById('file-input');
+            const pfpImg = document.getElementById('pfp-img');
+            const pfpPlaceholder = document.getElementById('pfp-placeholder');
+
+            const saved = localStorage.getItem('luxe-pfp');
+            if(saved) {
+                pfpImg.src = saved; pfpImg.style.display = 'block'; pfpPlaceholder.style.display = 'none';
+            }
+
+            fileIn.onchange = function() {
+                const file = this.files[0];
+                if(file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const res = e.target.result;
+                        pfpImg.src = res; pfpImg.style.display = 'block';
+                        pfpPlaceholder.style.display = 'none';
+                        localStorage.setItem('luxe-pfp', res);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+        }
+
+        function resetIdentity(e) {
+            e.stopPropagation();
+            localStorage.removeItem('luxe-pfp');
+            document.getElementById('pfp-img').style.display = 'none';
+            document.getElementById('pfp-placeholder').style.display = 'block';
+        }
+
+        // --- INVENTORY ENGINE (50 CARS) ---
+        function initInventory() {
+            const grid = document.getElementById('inventory-grid');
+            const carModels = [
+                { name: "Lamborghini Aventador", img: "https://images.unsplash.com/photo-1511919884226-fd3cad34687c?auto=format&fit=crop&q=80&w=400" },
+                { name: "Rolls-Royce Ghost", img: "https://images.unsplash.com/photo-1631214524020-5e1889536043?auto=format&fit=crop&q=80&w=400" },
+                { name: "Ferrari F8 Tributo", img: "https://images.unsplash.com/photo-1592198084033-aade902d1aae?auto=format&fit=crop&q=80&w=400" },
+                { name: "Porsche 911 Turbo S", img: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&q=80&w=400" },
+                { name: "McLaren 720S", img: "https://images.unsplash.com/photo-1621135802920-133df287f89c?auto=format&fit=crop&q=80&w=400" },
+                { name: "G-Wagon AMG", img: "https://images.unsplash.com/photo-1520050206274-a1af44640bb6?auto=format&fit=crop&q=80&w=400" }
+            ];
+
+            for(let i=1; i<=50; i++) {
+                const model = carModels[i % carModels.length];
+                const price = Math.floor(Math.random() * 200000 + 150000);
+                const card = document.createElement('div');
+                card.className = 'car-card';
+                card.id = `car-${i}`;
+                card.innerHTML = `
+                    <div class="car-img-box"><img src="${model.img}" alt="Car"></div>
+                    <div class="car-details">
+                        <span style="font-size:0.45rem; color:#444; letter-spacing:1px;">LX-${1000+i}</span>
+                        <h4 style="font-size:0.8rem; margin:5px 0;">${model.name}</h4>
+                        <span class="car-price">$${price.toLocaleString()}</span>
+                        <button class="btn-sell" onclick="processSale(${i}, ${price})">MARK SOLD</button>
+                    </div>`;
+                grid.appendChild(card);
+            }
+        }
+
+        function processSale(id, price) {
+            const card = document.getElementById(`car-${id}`);
+            if(!card.classList.contains('sold')) {
+                card.classList.add('sold');
+                sold++;
+                if(sold > 3) comm += (price * 0.01);
+                updateUI();
+            }
+        }
+
+        // --- FINANCIAL UPDATER ---
+        function updateUI() {
+            document.getElementById('quota-display').innerText = `${sold} / 3 UNITS`;
+            document.getElementById('salary-total').innerText = `$${(BASE + comm).toLocaleString()}`;
+            const perc = Math.min((sold / 3) * 100, 100);
+            document.getElementById('chart-fill').style.width = perc + '%';
+            document.getElementById('chart-percent').innerText = Math.round(perc) + '%';
+            document.getElementById('comm-tag').innerText = sold > 3 ? `Commission: +$${comm.toLocaleString()}` : "Quota Incomplete";
+            document.getElementById('comm-tag').style.color = sold > 3 ? "#2ecc71" : "#444";
+        }
+
+        // --- PRINTING & SECURITY ---
+        function handlePrintRequest(month, total) {
+            if(new Date().getDate() < 10) {
+                document.getElementById('modal-overlay').style.display = 'flex';
+            } else {
+                document.getElementById('slip-month').innerText = month;
+                document.getElementById('slip-total').innerText = `$${total.toLocaleString()}`;
+                document.getElementById('slip-name').innerText = document.getElementById('display-name').innerText;
+                document.getElementById('slip-loc').innerText = document.getElementById('display-location').innerText;
+                window.print();
+            }
+        }
+
+        function closeModal() { document.getElementById('modal-overlay').style.display = 'none'; }
+        function logout() { localStorage.removeItem('loggedUser'); window.location.href = 'index.html'; }
+    </script>
+</body>
+</html>
